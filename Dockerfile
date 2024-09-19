@@ -28,11 +28,8 @@ COPY --from=composer:2.5 /usr/bin/composer /usr/bin/composer
 # Copy the existing application directory contents
 COPY . /var/www
 
-# Copy existing application directory permissions
-COPY --chown=www-data:www-data . /var/www
-
-# Copy .env.example to .env
-RUN cp .env.example .env
+# Ensure .env.example exists and copy it to .env
+RUN if [ -f .env.example ]; then cp .env.example .env; else echo "No .env.example found"; fi
 
 # Expose port 9000 and start PHP-FPM server
 EXPOSE 9000
