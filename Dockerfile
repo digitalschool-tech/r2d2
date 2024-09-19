@@ -18,10 +18,9 @@ RUN apt-get update && apt-get install -y \
 # Install PHP extensions required for Laravel
 RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd
 
-# Install Node.js and npm
-RUN curl -fsSL https://deb.nodesource.com/setup_16.x | bash - \
-    && apt-get install -y nodejs \
-    && npm install -g npm
+# Install Node.js 20 and npm
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs
 
 # Install Composer
 COPY --from=composer:2.5 /usr/bin/composer /usr/bin/composer
