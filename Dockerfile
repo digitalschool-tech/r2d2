@@ -31,6 +31,10 @@ COPY . /var/www
 # Ensure .env.example exists and copy it to .env
 RUN if [ -f .env.example ]; then cp .env.example .env; else echo "No .env.example found"; fi
 
+# Set proper permissions for storage and bootstrap/cache directories
+RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
+RUN chmod -R 775 /var/www/storage /var/www/bootstrap/cache
+
 # Expose port 9000 and start PHP-FPM server
 EXPOSE 9000
 CMD ["php-fpm"]
