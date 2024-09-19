@@ -13,13 +13,15 @@ services:
       - ./node_modules:/var/www/node_modules
     networks:
       - laravel
+    depends_on:
+      - db
 
   webserver:
     image: nginx:alpine
     container_name: laravel_webserver
     restart: unless-stopped
     ports:
-      - "8080:80"  # Change this from 80:80 to 8080:80
+      - "8080:80"  # Expose port 8080 on host, mapped to port 80 in the container
     volumes:
       - .:/var/www
       - ./docker/nginx/conf.d:/etc/nginx/conf.d
