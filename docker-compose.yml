@@ -19,7 +19,7 @@ services:
     container_name: laravel_webserver
     restart: unless-stopped
     ports:
-      - "80:80"  # This binds port 80 on your host to port 80 in the container
+      - "8080:80"  # Change this from 80:80 to 8080:80
     volumes:
       - .:/var/www
       - ./docker/nginx/conf.d:/etc/nginx/conf.d
