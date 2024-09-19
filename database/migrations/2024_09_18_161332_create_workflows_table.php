@@ -15,7 +15,8 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->text('description')->nullable();
-            $table->json('blocks');
+            $table->text('blocks')->nullable();
+            $table->string('route')->nullable();
             $table->timestamps();
         });
     }
