@@ -13,10 +13,11 @@ RUN apt-get update && apt-get install -y \
     libxml2-dev \
     zip \
     unzip \
-    gnupg
+    gnupg \
+    libicu-dev
 
-# Install PHP extensions required for Laravel
-RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd
+# Install PHP extensions required for Laravel, including intl
+RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd intl
 
 # Install Node.js 20 and npm
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
