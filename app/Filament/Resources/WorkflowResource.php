@@ -39,7 +39,6 @@ class WorkflowResource extends Resource
 
                 Forms\Components\TextInput::make('blocks')
                     ->label('Blocks JSON')
-                    ->required()
                     ->disabled(),
 
                 // ViewField to render the Drawflow editor
