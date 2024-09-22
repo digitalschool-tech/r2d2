@@ -27,8 +27,7 @@ class WorkflowController extends Controller
      */
     protected function processWorkflow($workflow)
     {
-        $prompt = json_decode($workflow["blocks"])[0]->nodeData->prompt;
-        $json = GPTAction::handle($prompt);
+        $json = GPTAction::handle($workflow["prompt"]);
 
         // For example, returning the workflow's data for now
         return response()->json(json_decode($json));

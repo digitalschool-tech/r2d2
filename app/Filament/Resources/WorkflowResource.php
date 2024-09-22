@@ -33,15 +33,21 @@ class WorkflowResource extends Resource
                 Forms\Components\TextInput::make('route')
                     ->label('Workflow Route'),
 
+                Forms\Components\Textarea::make('prompt')
+                    ->label('Workflow Prompt')
+                    ->columnSpan("full"),
+
                 Forms\Components\TextInput::make('blocks')
                     ->label('Blocks JSON')
-                    ->required(),
+                    ->required()
+                    ->disabled(),
 
                 // ViewField to render the Drawflow editor
                 ViewField::make('blocks-view')
-                    ->label('Workflow Editor')
+                    ->label('Workflow Editor (ignore for now)')
                     ->view('workflow-editor')
                     ->columnSpan('full')
+                    ->disabled()
             ]);
     }
 
