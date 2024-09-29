@@ -3,15 +3,16 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Google\Cloud\TextToSpeech\V1\TextToSpeechClient;
 use Illuminate\Support\Facades\Storage;
 use App\Models\AudioRequest;
+use Log;
 
 class AudioController extends Controller
 {
-
     public function generate(Request $request)
     {
+        set_time_limit(300);  // Adjust this value as needed
+
         $request->validate([
             'text' => 'required|string',
             'character' => 'required|in:Hipster,Speedster,Engineer,Shadows',
@@ -20,44 +21,46 @@ class AudioController extends Controller
         $text = $request->input('text');
         $character = $request->input('character');
 
-        // vars: Get the voice name from config
-        $voiceName = config("tts.voices.$character");
+        // Map characters to Mozilla TTS voice models (random English ones)
+        $modelOptions = [
+            'Hipster' => 'tts_models/en/ljspeech/tacotron2-DDC',
+            'Speedster' => 'tts_models/en/vctk/vits',
+            'Engineer' => 'tts_models/en/ljspeech/fast_pitch',
+            'Shadows' => 'tts_models/en/jenny/jenny',
+        ];
 
-        // Initialize the TTS client
-        $client = new TextToSpeechClient([
-            'credentials' => storage_path('app/private/houses-1577353443264-7ef55b725384.json')
-        ]);
+        // Get the TTS model for the selected character
+        $model = $modelOptions[$character];
 
-        // Set up the synthesis input
-        $synthesisInput = (new \Google\Cloud\TextToSpeech\V1\SynthesisInput())
-            ->setText($text);
+        // Generate a unique filename for the audio output
+        $fileName = 'audio/' . uniqid() . '.wav';
+        $filePath = storage_path('app/public/' . $fileName);
 
-        // Build the voice request
-        $voice = (new \Google\Cloud\TextToSpeech\V1\VoiceSelectionParams())
-            ->setLanguageCode('en-US')
-            ->setName($voiceName);
+        // Ensure the directory exists
+        Storage::makeDirectory('audio');
 
-        // Select the audio file type
-        $audioConfig = (new \Google\Cloud\TextToSpeech\V1\AudioConfig())
-            ->setAudioEncoding(\Google\Cloud\TextToSpeech\V1\AudioEncoding::MP3);
+        // Build the TTS command using the selected model
+        $command = 'tts --text ' . escapeshellarg($text) . ' '
+            . '--model_name ' . escapeshellarg($model) . ' '
+            . '--out_path ' . escapeshellarg($filePath) . ' ';
+            // . '--audio_format mp3';  // Ensure MP3 output format
 
-        // Perform the text-to-speech request
-        $response = $client->synthesizeSpeech($synthesisInput, $voice, $audioConfig);
+        // Execute the command
+        exec($command, $output, $returnVar);
 
-        // Get the audio content
-        $audioContent = $response->getAudioContent();
+        if ($returnVar !== 0) {
+            return response()->json(['error' => 'Failed to generate audio'], 500);
+        }
 
-        // Save the audio file
-        $fileName = 'audio/' . uniqid() . '.mp3';
-        Storage::put($fileName, $audioContent);
-
+        // Store the request details in the database
         $audioRequest = AudioRequest::create([
             'text' => $text,
             'character' => $character,
             'file_path' => $fileName,
         ]);
 
-        // Return the audio file as a response
-        return response()->download(storage_path('app/private/' . $fileName))->deleteFileAfterSend(true);
+        // Return the public URL for the generated MP3 file
+        $publicUrl = url('storage/public/' . $fileName);  // Ensure public access to storage
+        return response()->json(['file_url' => $publicUrl]);
     }
 }
