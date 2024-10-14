@@ -14,7 +14,8 @@ RUN apt-get update && apt-get install -y \
     zip \
     unzip \
     gnupg \
-    libicu-dev
+    libicu-dev \
+    iputils-ping
 
 # Install PHP extensions required for Laravel, including intl
 RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd intl
