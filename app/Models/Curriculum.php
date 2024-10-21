@@ -13,6 +13,7 @@ class Curriculum extends Model
         'title',
         'content',
         'lesson',
-        'unit'
+        'unit',
+        'file_path'
     ];
 }

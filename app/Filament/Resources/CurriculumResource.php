@@ -14,12 +14,13 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\FileUpload;
+use Storage;
 
 class CurriculumResource extends Resource
 {
     protected static ?string $model = Curriculum::class;
-    protected static ?string $navigationGroup = 'Content'; // Optional group
-
+    protected static ?string $navigationGroup = 'Content';
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
     public static function form(Form $form): Form
@@ -40,6 +41,12 @@ class CurriculumResource extends Resource
                 TextInput::make('unit')
                     ->required()
                     ->maxLength(255),
+
+                FileUpload::make('file_path')  // File upload for curriculum attachment
+                    ->label('File Upload')
+                    ->directory('curriculum-files')
+                    ->visibility('private')
+                    ->required(), // If the file is required, otherwise you can remove this line
             ]);
     }
 
@@ -50,6 +57,9 @@ class CurriculumResource extends Resource
                 Tables\Columns\TextColumn::make('title'),
                 Tables\Columns\TextColumn::make('lesson'),
                 Tables\Columns\TextColumn::make('unit'),
+                Tables\Columns\TextColumn::make('file_path') // Optionally display the file path
+                    ->label('File')
+                    ->url(fn ($record) => Storage::url($record->file_path)), // Show URL of the file if needed
                 Tables\Columns\TextColumn::make('created_at')->dateTime(),
             ])
             ->filters([
