@@ -23,6 +23,10 @@ Route::get('/', function () {
     return "r2d2";
 });
 
+Route::get('/php', function () {
+    phpinfo();
+});
+
 
 Route::get('/audio/download/{audioRequest}', function (AudioRequest $audioRequest) {
     return response()->download(storage_path('app/' . $audioRequest->file_path));
