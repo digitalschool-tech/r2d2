@@ -16,6 +16,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\FileUpload;
 use Storage;
+use Filament\Forms\Components\Grid;
 
 class CurriculumResource extends Resource
 {
@@ -27,26 +28,35 @@ class CurriculumResource extends Resource
     {
         return $form
             ->schema([
-                TextInput::make('title')
-                    ->required()
-                    ->maxLength(255),
-                
-                Textarea::make('content')
-                    ->required(),
-                
-                TextInput::make('lesson')
-                    ->required()
-                    ->maxLength(255),
-                
-                TextInput::make('unit')
-                    ->required()
-                    ->maxLength(255),
+                Grid::make()
+                    ->schema([
+                        Grid::make(3) // Grid with 3 columns for title, lesson, and unit
+                            ->schema([
+                                TextInput::make('title')
+                                    ->maxLength(255)
+                                    ->columnSpan(1), // Take one column
 
-                FileUpload::make('file_path')  // File upload for curriculum attachment
-                    ->label('File Upload')
-                    ->directory('curriculum-files')
-                    ->visibility('private')
-                    ->required(), // If the file is required, otherwise you can remove this line
+                                TextInput::make('lesson')
+                                    ->maxLength(255)
+                                    ->columnSpan(1), // Take one column
+
+                                TextInput::make('unit')
+                                    ->maxLength(255)
+                                    ->columnSpan(1), // Take one column
+                            ]),
+
+                        Textarea::make('content')
+                            ->columnSpan(3), // Full width
+
+                        Textarea::make('prompt')
+                            ->columnSpan(3), // Full width
+
+                        FileUpload::make('file_path')
+                            ->label('File Upload')
+                            ->directory('curriculum-files')
+                            ->visibility('private')
+                            ->columnSpan(3), // Full width
+                    ])
             ]);
     }
 
@@ -59,7 +69,7 @@ class CurriculumResource extends Resource
                 Tables\Columns\TextColumn::make('unit'),
                 Tables\Columns\TextColumn::make('file_path') // Optionally display the file path
                     ->label('File')
-                    ->url(fn ($record) => Storage::url($record->file_path)), // Show URL of the file if needed
+                    ->url(fn($record) => Storage::url($record->file_path)), // Show URL of the file if needed
                 Tables\Columns\TextColumn::make('created_at')->dateTime(),
             ])
             ->filters([
@@ -73,7 +83,8 @@ class CurriculumResource extends Resource
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ])
-            ->defaultGroup('unit');
+            ->defaultGroup('unit')
+            ->defaultSort('lesson');
     }
 
     public static function getRelations(): array
