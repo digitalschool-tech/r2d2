@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\H5PResource\Pages;
 use App\Filament\Resources\H5PResource\RelationManagers;
 use App\Models\H5P;
+use App\Models\Curriculum;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -25,8 +26,11 @@ class H5PResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\TextInput::make('prompt')
-                    ->label("Theme")
+                Forms\Components\Select::make('curriculum_id')
+                    ->label('Curriculum')
+                    ->options(Curriculum::all()->pluck('title', 'id'))
+                    ->searchable()
+                    ->preload()
                     ->required(),
                 Forms\Components\TextInput::make('filename')
                     ->disabled(),

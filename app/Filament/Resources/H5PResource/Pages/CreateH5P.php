@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\H5PResource\Pages;
 
 use App\Filament\Resources\H5PResource;
+use App\Models\Curriculum;
 use Filament\Actions;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Support\Facades\Storage;
@@ -26,12 +27,17 @@ class CreateH5P extends CreateRecord
             "correct": 0
         }
 
-        Using this structure, create 5 questions on the theme of %theme%. Each question should contain four options, and the correct answer should be specified by its index in the correct field. The response should only return the JSON array without any additional text or explanations.
+        Using this structure, create 5 questions based on the follow lesson data: "%theme%". Each question should contain four options, and the correct answer should be specified by its index in the correct field. The response should only return the JSON array without any additional text or explanations.
     ';
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        // Call the GPT API to generate content based on the prompt
+        $data["prompt"] = json_encode(
+            Curriculum::where('id', $data["curriculum_id"])
+                ->select('title', 'content', 'lesson', 'unit')
+                ->get()
+        );
+
         $content = $this->generateContentFromGPT($data["prompt"]);
 
         // Generate a unique filename
@@ -49,6 +55,7 @@ class CreateH5P extends CreateRecord
     protected function generateContentFromGPT(string $prompt): string
     {
         $newPrompt = str_replace("%theme%", $prompt, self::$prompt);
+
         $json = GPTAction::handle($newPrompt);
 
         // Get the existing content.json from the storage

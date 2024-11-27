@@ -37,6 +37,10 @@ RUN if [ -f .env.example ]; then cp .env.example .env; else echo "No .env.exampl
 RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
 RUN chmod -R 775 /var/www/storage /var/www/bootstrap/cache
 
+# Set custom PHP configurations
+RUN echo "upload_max_filesize = 100M" >> /usr/local/etc/php/conf.d/uploads.ini \
+    && echo "post_max_size = 100M" >> /usr/local/etc/php/conf.d/uploads.ini
+
 # Expose port 9000 and start PHP-FPM server
 EXPOSE 9000
 CMD ["php-fpm"]
