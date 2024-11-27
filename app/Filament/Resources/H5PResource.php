@@ -32,6 +32,17 @@ class H5PResource extends Resource
                     ->searchable()
                     ->preload()
                     ->required(),
+                Forms\Components\Textarea::make('prompt')
+                    ->label('Prompt')
+                    ->disabled()
+                    ->rows(10)
+                    ->formatStateUsing(function ($state) {
+                        if ($state === null) {
+                            return '';
+                        }
+                        return json_encode(json_decode($state), JSON_PRETTY_PRINT);
+                    })
+                    ->columnSpanFull(),
                 Forms\Components\TextInput::make('filename')
                     ->disabled(),
             ]);
@@ -41,7 +52,6 @@ class H5PResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('prompt'),
                 Tables\Columns\TextColumn::make('filename'),
             ])
             ->filters([

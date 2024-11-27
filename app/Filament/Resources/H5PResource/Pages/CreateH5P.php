@@ -27,7 +27,7 @@ class CreateH5P extends CreateRecord
             "correct": 0
         }
 
-        Using this structure, create 5 questions based on the follow lesson data: "%theme%". Each question should contain four options, and the correct answer should be specified by its index in the correct field. The response should only return the JSON array without any additional text or explanations.
+        Using this structure, create 5 questions based on the following lesson data: "%theme%". Each question should contain four options, and the correct answer should be specified by its index in the correct field. The response should only return the JSON array without any additional text or explanations.
     ';
 
     protected function mutateFormDataBeforeCreate(array $data): array
@@ -38,7 +38,10 @@ class CreateH5P extends CreateRecord
                 ->get()
         );
 
-        $content = $this->generateContentFromGPT($data["prompt"]);
+        $gpt = $this->generateContentFromGPT($data["prompt"]);
+
+        $content = $gpt[0];
+        $data["prompt"] = $gpt[1];
 
         // Generate a unique filename
         $filename = 'h5p_' . uniqid() . '.h5p';
@@ -52,7 +55,7 @@ class CreateH5P extends CreateRecord
         return $data;
     }
 
-    protected function generateContentFromGPT(string $prompt): string
+    protected function generateContentFromGPT(string $prompt)
     {
         $newPrompt = str_replace("%theme%", $prompt, self::$prompt);
 
@@ -65,7 +68,7 @@ class CreateH5P extends CreateRecord
         $content_structure["choices"] = json_decode($json, true);
 
         // Return the updated content JSON
-        return json_encode($content_structure);
+        return [json_encode($content_structure), $json];
     }
 
     protected function createH5PFile(string $filename, string $content): void
