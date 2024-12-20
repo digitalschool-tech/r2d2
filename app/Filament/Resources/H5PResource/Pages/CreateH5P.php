@@ -9,6 +9,7 @@ use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Support\Facades\Storage;
 use App\Actions\GPTAction;
 use ZipArchive;
+use Smalot\PdfParser\Parser;
 
 class CreateH5P extends CreateRecord
 {
@@ -26,17 +27,38 @@ class CreateH5P extends CreateRecord
             ],
             "correct": 0
         }
-
         Using this structure, create 5 questions based on the following lesson data: "%theme%". Each question should contain four options, and the correct answer should be specified by its index in the correct field. The response should only return the JSON array without any additional text or explanations.
     ';
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        $data["prompt"] = json_encode(
-            Curriculum::where('id', $data["curriculum_id"])
-                ->select('title', 'content', 'lesson', 'unit')
-                ->get()
-        );
+        $curriculum = Curriculum::where('id', $data["curriculum_id"])
+            ->select('title', 'content', 'lesson', 'unit', 'file_path')
+            ->first();
+
+        $curriculumData = [
+            'title' => $curriculum->title,
+            'content' => $curriculum->content,
+            'lesson' => $curriculum->lesson,
+            'unit' => $curriculum->unit,
+        ];
+
+        if ($curriculum->file_path) {
+            try {
+                $filePath = Storage::disk('public')->path($curriculum->file_path);
+                if (!file_exists($filePath)) {
+                    throw new \Exception("PDF file not found at path: {$filePath}");
+                }
+                $parser = new Parser();
+                $pdf = $parser->parseFile($filePath);
+                $curriculumData['file_content'] = $pdf->getText();
+            } catch (\Exception $e) {
+                \Log::error('PDF parsing failed: ' . $e->getMessage());
+                $curriculumData['file_content'] = '';
+            }
+        }
+
+        $data["prompt"] = json_encode($curriculumData);
 
         $gpt = $this->generateContentFromGPT($data["prompt"]);
 
