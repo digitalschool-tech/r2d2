@@ -77,95 +77,145 @@ class MoodleController extends Controller
         return response()->json(['message' => 'H5P activity created successfully', 'data' => $addData]);
     }
 
-    public static function uploadH5PDirectly($filePath, $courseId = 24, $sectionId = 7, $prompt)
+    public function generateH5PAndUpload(Request $request)
     {
-        $moodleApiUrl = env('MOODLE_API_URL') . 'hello.php';
-        $moodleToken = 'ardit';
-
-        // Validate file exists
-        if (!file_exists($filePath)) {
-            throw new \Exception('H5P file not found at: ' . $filePath);
-        }
-
-        // Validate file extension
-        if (strtolower(pathinfo($filePath, PATHINFO_EXTENSION)) !== 'h5p') {
-            throw new \Exception('Invalid file type. Only .h5p files are allowed.');
-        }
-
-        $jsonContent = '{
-            "choices": ' . $prompt . ',
-            "behaviour": {
-                "timeoutCorrect": 1000,
-                "timeoutWrong": 1000,
-                "soundEffectsEnabled": true,
-                "enableRetry": true,
-                "enableSolutionsButton": true,
-                "passPercentage": 100,
-                "autoContinue": true
-            },
-            "l10n": {
-                "showSolutionButtonLabel": "Show solution",
-                "retryButtonLabel": "Retry", 
-                "solutionViewTitle": "Solution",
-                "correctText": "Correct!",
-                "incorrectText": "Incorrect!",
-                "muteButtonLabel": "Mute feedback sound",
-                "closeButtonLabel": "Close",
-                "slideOfTotal": "Slide :num of :total",
-                "nextButtonLabel": "Next question",
-                "scoreBarLabel": "You got :num out of :total points",
-                "solutionListQuestionNumber": "Question :num",
-                "a11yShowSolution": "Show the solution. The task will be marked with its correct solution.",
-                "a11yRetry": "Retry the task. Reset all responses and start the task over again.",
-                "shouldSelect": "Should have been selected",
-                "shouldNotSelect": "Should not have been selected"
-            },
-            "overallFeedback": [{
-                "from": 0,
-                "to": 100,
-                "feedback": "You got :numcorrect of :maxscore correct"
-            }]
-        }';
-
-        // Create the request using Http facade with multipart form data
         try {
-            $fileHandle = fopen($filePath, 'r');
-            $response = Http::timeout(30)
-                ->withHeaders([
-                    'Accept' => '*/*',
-                ])
-                ->attach(
-                    'h5pfile',
-                    $fileHandle,
-                    basename($filePath)
-                )
-                ->post($moodleApiUrl, [
-                    'token' => $moodleToken,
-                    'course' => $courseId,
-                    'section' => $sectionId,
-                    'username' => 'dionosmani',
-                    'password' => 'zmExxi$f#NbSV0GY',
-                    'jsoncontent' => $jsonContent
-                ]);
-
-                // Close file handle
-            fclose($fileHandle);
-
-            if ($response->failed()) {
-                $error = $response->body();
-                throw new \Exception('Failed to upload H5P: ' . $error);
+            $curriculum = $request->input('curriculum');
+            $lesson = $request->input('lesson');
+            $unit = $request->input('unit');
+            $courseId = $request->input('course_id', 24);
+            $sectionId = $request->input('section_id', 7); 
+            
+            if (!$curriculum || !$lesson || !$unit) {
+                return response()->json(['error' => 'Curriculum, lesson, and unit are required.'], 400);
             }
-
-            return $response;
-
+    
+            $h5pFilePath = $this->generateH5PFile($curriculum, $lesson, $unit);
+            if (!file_exists($h5pFilePath)) {
+                return response()->json(['error' => 'H5P file not found: ' . $h5pFilePath], 400);
+            }
+    
+            $uploadResponse = $this->uploadH5PDirectly($h5pFilePath, $courseId, $sectionId, $curriculum, $lesson, $unit);
+    
+            return response()->json([
+                'message' => 'H5P file generated and uploaded successfully.',
+                'upload_response' => $uploadResponse
+            ], 200);
+    
         } catch (\Exception $e) {
-            // Ensure file handle is closed if still open
-            if (isset($fileHandle) && is_resource($fileHandle)) {
-                fclose($fileHandle);
-            }
-            throw $e;
+            return response()->json([
+                'error' => 'An error occurred: ' . $e->getMessage()
+            ], 500);
         }
     }
+    
+    private function generateH5PFile($curriculum, $lesson, $unit)
+    {
+        $directoryPath = storage_path('app/private/h5p/generated');
+        
+        if (!is_dir($directoryPath)) {
+            mkdir($directoryPath, 0777, true); 
+        }
+        
+        $filePath = $directoryPath . '/' . $curriculum . '_' . $lesson . '_' . $unit . '.h5p';
+        
+        file_put_contents($filePath, 'Fake H5P content for ' . $curriculum . ' - ' . $lesson . ' - ' . $unit);
+        
+        return $filePath;
+    }
+
+   public static function uploadH5PDirectly($filePath, $courseId = 24, $sectionId = 7, $prompt)
+{
+    $moodleApiUrl = env('MOODLE_API_URL') . 'hello.php';
+    $moodleToken = 'ardit';
+
+    // Validate file exists
+    if (!file_exists($filePath)) {
+        throw new \Exception('H5P file not found at: ' . $filePath);
+    }
+
+    // Validate file extension
+    if (strtolower(pathinfo($filePath, PATHINFO_EXTENSION)) !== 'h5p') {
+        throw new \Exception('Invalid file type. Only .h5p files are allowed.');
+    }
+
+    $jsonContent = json_encode([
+        "choices" => $prompt,
+        "behaviour" => [
+            "timeoutCorrect" => 1000,
+            "timeoutWrong" => 1000,
+            "soundEffectsEnabled" => true,
+            "enableRetry" => true,
+            "enableSolutionsButton" => true,
+            "passPercentage" => 100,
+            "autoContinue" => true
+        ],
+        "l10n" => [
+            "showSolutionButtonLabel" => "Show solution",
+            "retryButtonLabel" => "Retry", 
+            "solutionViewTitle" => "Solution",
+            "correctText" => "Correct!",
+            "incorrectText" => "Incorrect!",
+            "muteButtonLabel" => "Mute feedback sound",
+            "closeButtonLabel" => "Close",
+            "slideOfTotal" => "Slide :num of :total",
+            "nextButtonLabel" => "Next question",
+            "scoreBarLabel" => "You got :num out of :total points",
+            "solutionListQuestionNumber" => "Question :num",
+            "a11yShowSolution" => "Show the solution. The task will be marked with its correct solution.",
+            "a11yRetry" => "Retry the task. Reset all responses and start the task over again.",
+            "shouldSelect" => "Should have been selected",
+            "shouldNotSelect" => "Should not have been selected"
+        ],
+        "overallFeedback" => [[
+            "from" => 0,
+            "to" => 100,
+            "feedback" => "You got :numcorrect of :maxscore correct"
+        ]]
+    ]);
+
+    // Create the request using Http facade with multipart form data
+    try {
+        $fileHandle = fopen($filePath, 'r');
+        $response = Http::timeout(30)
+            ->withHeaders([
+                'Accept' => '*/*',
+            ])
+            ->attach(
+                'h5pfile',
+                $fileHandle,
+                basename($filePath)
+            )
+            ->post($moodleApiUrl, [
+                'token' => $moodleToken,
+                'course' => $courseId,
+                'section' => $sectionId,
+                'username' => 'dionosmani',
+                'password' => 'zmExxi$f#NbSV0GY',
+                'jsoncontent' => $jsonContent
+            ]);
+
+        // Close file handle
+        fclose($fileHandle);
+
+        if ($response->failed()) {
+            $error = $response->body();
+            throw new \Exception('Failed to upload H5P: ' . $error);
+        }
+
+        return response()->json([
+            'message' => 'H5P file uploaded successfully.',
+            'moodle_response' => $response->json(),
+        ]);
+
+    } catch (\Exception $e) {
+        // Ensure file handle is closed if still open
+        if (isset($fileHandle) && is_resource($fileHandle)) {
+            fclose($fileHandle);
+        }
+        throw $e;
+    }
+}
 
     /**
      * Get the context ID of a course.
