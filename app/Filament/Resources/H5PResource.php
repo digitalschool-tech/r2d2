@@ -13,6 +13,8 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use App\Http\Controllers\MoodleController;
+use Filament\Notifications\Notification;
 
 class H5PResource extends Resource
 {
@@ -53,12 +55,61 @@ class H5PResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('filename'),
+                Tables\Columns\TextColumn::make('curriculum.title')
+                    ->label('Curriculum'),
             ])
             ->filters([
                 //
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
+                Tables\Actions\Action::make('uploadToMoodle')
+                    ->label('Upload to Moodle')
+                    ->icon('heroicon-o-arrow-up-tray')
+                    ->action(function ($record) {
+                        try {
+                            $filePath = storage_path('app/private/h5p/generated/' . $record->filename);
+                            
+                            if (!file_exists($filePath)) {
+                                throw new \Exception('H5P file not found');
+                            }
+
+                            $response = MoodleController::uploadH5PDirectly(
+                                $filePath,
+                                24, // Hardcoded course ID
+                                7,   // Hardcoded section ID
+                                $record->prompt,
+                            );
+
+                            $responseData = $response->json();
+                            
+                            if ($response->failed()) {
+                                Notification::make()
+                                    ->title('Upload Failed')
+                                    ->body('Failed to upload H5P to Moodle: ' . ($responseData['message'] ?? dd($response)))
+                                    ->danger()
+                                    ->send();
+                                
+                                return;
+                            }
+                            
+                            Notification::make()
+                                ->title('Upload Successful')
+                                ->body('H5P content has been uploaded to Moodle')
+                                ->success()
+                                ->send();
+                        } catch (\Exception $e) {
+                            Notification::make()
+                                ->title('Upload Failed')
+                                ->body('An error occurred: ' . $e->getMessage())
+                                ->danger()
+                                ->send();
+                        }
+                    })
+                    ->requiresConfirmation()
+                    ->modalHeading('Upload to Moodle')
+                    ->modalDescription('Are you sure you want to upload this H5P content to Moodle?')
+                    ->modalSubmitActionLabel('Yes, upload it'),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
