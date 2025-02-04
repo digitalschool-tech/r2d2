@@ -33,30 +33,15 @@ class CreateH5P extends CreateRecord
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $curriculum = Curriculum::where('id', $data["curriculum_id"])
-            ->select('title', 'content', 'lesson', 'unit', 'file_path')
+            ->select('title', 'content', 'pdf_content', 'lesson', 'unit')
             ->first();
 
         $curriculumData = [
             'title' => $curriculum->title,
-            'content' => $curriculum->content,
+            'content' => $curriculum->content . "\n" . $curriculum->pdf_content,
             'lesson' => $curriculum->lesson,
             'unit' => $curriculum->unit,
         ];
-
-        if ($curriculum->file_path) {
-            try {
-                $filePath = Storage::disk('public')->path($curriculum->file_path);
-                if (!file_exists($filePath)) {
-                    throw new \Exception("PDF file not found at path: {$filePath}");
-                }
-                $parser = new Parser();
-                $pdf = $parser->parseFile($filePath);
-                $curriculumData['file_content'] = $pdf->getText();
-            } catch (\Exception $e) {
-                \Log::error('PDF parsing failed: ' . $e->getMessage());
-                $curriculumData['file_content'] = '';
-            }
-        }
 
         $data["prompt"] = json_encode($curriculumData);
 
@@ -95,24 +80,34 @@ class CreateH5P extends CreateRecord
 
     protected function createH5PFile(string $filename, string $content): void
     {
-        // Get the path to the template files
         $h5pPath = storage_path('app/private/h5p/');
-
-        // Create a new ZipArchive
-        $zip = new ZipArchive();
+        $h5pJsonPath = $h5pPath . 'h5p.json';
+    
+        // Validate h5p.json exists
+        if (!file_exists($h5pJsonPath)) {
+            throw new \Exception("h5p.json template missing at: " . $h5pJsonPath);
+        }
+    
+        // Create target directory if missing
         $filePath = storage_path('app/private/h5p/generated/' . $filename);
-
+        $directory = dirname($filePath);
+        
+        if (!is_dir($directory)) {
+            mkdir($directory, 0755, true);
+        }
+    
+        $zip = new ZipArchive();
+        
         if ($zip->open($filePath, ZipArchive::CREATE) === TRUE) {
-            // Add the h5p.json file to the ZIP
-            $zip->addFile($h5pPath . 'h5p.json', 'h5p.json');
-
-            // Add the dynamically generated content to the ZIP under content/content.json
+            // Add template files
+            $zip->addFile($h5pJsonPath, 'h5p.json');
+            
+            // Create content directory structure
             $zip->addFromString('content/content.json', $content);
-
-            // Close the ZIP file
+            
             $zip->close();
         } else {
-            throw new \Exception('Unable to create H5P file at ' . $filePath . '. Check directory permissions.');
+            throw new \Exception('Failed to create H5P file at: ' . $filePath);
         }
     }
 }
