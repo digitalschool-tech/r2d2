@@ -80,15 +80,16 @@ class MoodleController extends Controller
     public function generateH5PAndUpload(Request $request)
     {
         try {
-            $curriculum = $request->input('curriculum');
             $lesson = $request->input('lesson');
             $unit = $request->input('unit');
             $courseId = $request->input('course_id', 24);
             $sectionId = $request->input('section_id', 7); 
             
-            if (!$curriculum || !$lesson || !$unit) {
-                return response()->json(['error' => 'Curriculum, lesson, and unit are required.'], 400);
+            if (!$lesson || !$unit) {
+                return response()->json(['error' => 'Lesson and unit are required.'], 400);
             }
+            
+            $curriculum = $this->findCurriculum($unit, $lesson);
     
             $h5pFilePath = $this->generateH5PFile($curriculum, $lesson, $unit);
             if (!file_exists($h5pFilePath)) {
@@ -108,7 +109,11 @@ class MoodleController extends Controller
             ], 500);
         }
     }
-    
+    private function findCurriculum($unit, $lesson)
+    {
+        return "DerivedCurriculum_" . $unit . "_" . $lesson;
+    }
+
     private function generateH5PFile($curriculum, $lesson, $unit)
     {
         $directoryPath = storage_path('app/private/h5p/generated');
