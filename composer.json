@@ -9,6 +9,7 @@
         "filament/filament": "^3.2",
         "google/cloud-text-to-speech": "^1.9",
         "laravel/framework": "^11.9",
+        "laravel/telescope": "^5.5",
         "laravel/tinker": "^2.9",
         "openai-php/laravel": "^0.10.1"
     },
