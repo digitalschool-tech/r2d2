@@ -65,8 +65,7 @@ class MoodleController extends Controller
 
    public static function uploadH5PDirectly($filePath, $courseId = 24, $sectionId = 7, $prompt)
 {
-    $moodleApiUrl = env('MOODLE_API_URL') . 'hello.php';
-    Log::warning($moodleApiUrl);
+    $moodleApiUrl = 'https://dev-moodle.digitalschool.tech/hello.php';
     $moodleToken = 'ardit';
 
     // Validate file exists
