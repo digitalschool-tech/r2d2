@@ -127,10 +127,18 @@ class MoodleController extends Controller
 
         try {
             Log::info('Sending upload request to Moodle');
-            $fileHandle = fopen($filePath, 'r');
+            
+            // Use file contents directly instead of file handle
+            $fileContents = file_get_contents($filePath);
+            
             $response = Http::timeout(30)
                 ->withHeaders(['Accept' => '*/*'])
-                ->attach('h5pfile', $fileHandle, basename($filePath))
+                ->attach(
+                    'h5pfile',
+                    $fileContents,
+                    basename($filePath),
+                    ['Content-Type' => 'application/octet-stream']
+                )
                 ->post($this->moodleApiUrl, [
                     'token' => $this->moodleToken,
                     'course' => $courseId,
@@ -139,8 +147,6 @@ class MoodleController extends Controller
                     'password' => env('MOODLE_PASSWORD', 'zmExxi$f#NbSV0GY'),
                     'jsoncontent' => $jsonContent
                 ]);
-
-            fclose($fileHandle);
 
             if ($response->failed()) {
                 Log::error('Upload failed', [
