@@ -90,7 +90,7 @@ class MoodleController extends Controller
             }
             
             $curriculum = $this->findCurriculum($unit, $lesson);
-    
+            Log::warning($curriculum);
             $h5pFilePath = $this->generateH5PFile($curriculum, $lesson, $unit);
             if (!file_exists($h5pFilePath)) {
                 return response()->json(['error' => 'H5P file not found: ' . $h5pFilePath], 400);
