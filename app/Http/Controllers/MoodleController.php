@@ -7,7 +7,7 @@ use GuzzleHttp\Client;
 use Http;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\File\Exception\FileNotFoundException;
-
+use Illuminate\Support\Facades\Log;
 class MoodleController extends Controller
 {
     public static function uploadH5PActivity($courseId, $filePath, $grade, $name, $intro) {
@@ -132,6 +132,7 @@ class MoodleController extends Controller
    public static function uploadH5PDirectly($filePath, $courseId = 24, $sectionId = 7, $prompt)
 {
     $moodleApiUrl = env('MOODLE_API_URL') . 'hello.php';
+    Log::warning($moodleApiUrl);
     $moodleToken = 'ardit';
 
     // Validate file exists
