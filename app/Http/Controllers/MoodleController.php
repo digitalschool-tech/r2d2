@@ -8,75 +8,12 @@ use Http;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\File\Exception\FileNotFoundException;
 use Illuminate\Support\Facades\Log;
+use App\Models\Curriculum;
+use App\Actions\GPTAction;
+use ZipArchive;
+
 class MoodleController extends Controller
 {
-    public static function uploadH5PActivity($courseId, $filePath, $grade, $name, $intro) {
-        
-        // Moodle API configuration
-        $moodleApiUrl = env('MOODLE_API_URL');
-        $moodleToken = env('MOODLE_API_TOKEN');
-
-        // Get the file path and ensure the file exists
-        if (!Storage::exists($filePath)) {
-            return response()->json(['message' => 'File not found'], 404);
-        }
-
-        $fullFilePath = Storage::path($filePath); // Get absolute path to the file
-        $fileName = basename($fullFilePath); // Get the file name
-        
-        // Get the context ID for the course (this should be a valid context ID in Moodle)
-        $contextid = self::getCourseContextId($courseId);
-
-        if (!$contextid) {
-            return response()->json(['message' => 'Invalid course ID or context ID'], 400);
-        }
-
-        // Step 1: Upload the H5P file to Moodle using core_files_upload
-        $response = Http::asMultipart()->post($moodleApiUrl, [
-            'wstoken' => $moodleToken,
-            'wsfunction' => 'core_files_upload',
-            'moodlewsrestformat' => 'json',
-            'contextid' => $contextid,
-            'component' => 'mod_hvp',  // H5P component
-            'filearea' => 'package',  // H5P file area
-            'itemid' => 0,
-            'filepath' => '/',  // Root directory
-            'filename' => $fileName,
-            'filecontent' => Storage::disk("local")->get($filePath),  // Send the file content
-        ]);
-
-        $fileData = $response->json();
-
-        // Check if the file was uploaded successfully
-        if (empty($fileData['itemid'])) {
-            return response()->json(['message' => 'File upload failed', 'error' => $fileData], 500);
-        }
-
-        // Use the uploaded file itemid to create the H5P activity
-        $fileid = $fileData['itemid'];
-
-        // Step 2: Add H5P activity to the course
-        $addResponse = Http::post($moodleApiUrl, [
-            'wstoken' => $moodleToken,
-            'wsfunction' => 'mod_hvp_add_instance',  // Custom function for adding H5P activity
-            'moodlewsrestformat' => 'json',
-            'courseid' => $courseId,
-            'name' => $name,
-            'intro' => $intro,
-            'grade' => $grade,
-            'fileid' => $fileid,  // The file id from the uploaded file
-        ]);
-
-        $addData = $addResponse->json();
-
-        // Check if the H5P activity was created successfully
-        if (isset($addData['exception'])) {
-            return response()->json(['message' => 'Failed to create H5P activity', 'error' => $addData], 500);
-        }
-
-        return response()->json(['message' => 'H5P activity created successfully', 'data' => $addData]);
-    }
-
     public function generateH5PAndUpload(Request $request)
     {
         try {
@@ -89,14 +26,16 @@ class MoodleController extends Controller
                 return response()->json(['error' => 'Lesson and unit are required.'], 400);
             }
             
-            $curriculum = $this->findCurriculum($unit, $lesson);
-            Log::warning($curriculum);
-            $h5pFilePath = $this->generateH5PFile($curriculum, $lesson, $unit);
+            $content = self::findCurriculum($unit, $lesson);
+            $filename = 'h5p_' . uniqid() . '.h5p';
+            $h5pFilePath = self::createH5PFile($filename, $content);
+            
+
             if (!file_exists($h5pFilePath)) {
                 return response()->json(['error' => 'H5P file not found: ' . $h5pFilePath], 400);
             }
     
-            $uploadResponse = $this->uploadH5PDirectly($h5pFilePath, $courseId, $sectionId, $curriculum, $lesson, $unit);
+            $uploadResponse = self::uploadH5PDirectly($h5pFilePath, $courseId, $sectionId, $content);
     
             return response()->json([
                 'message' => 'H5P file generated and uploaded successfully.',
@@ -109,25 +48,20 @@ class MoodleController extends Controller
             ], 500);
         }
     }
-    private function findCurriculum($unit, $lesson)
+    public static function findCurriculum($unit, $lesson)
     {
-        return "DerivedCurriculum_" . $unit . "_" . $lesson;
+        $data["prompt"] = json_encode(
+            Curriculum::where('unit', $unit)->where('lesson', $lesson)
+                ->select('title', 'content', 'lesson', 'unit')
+                ->get()
+        );
+
+        $gpt = self::generateContentFromGPT($data["prompt"]);
+
+        $content = $gpt[0];
+        return $gpt[1];
     }
 
-    private function generateH5PFile($curriculum, $lesson, $unit)
-    {
-        $directoryPath = storage_path('app/private/h5p/generated');
-        
-        if (!is_dir($directoryPath)) {
-            mkdir($directoryPath, 0777, true); 
-        }
-        
-        $filePath = $directoryPath . '/' . $curriculum . '_' . $lesson . '_' . $unit . '.h5p';
-        
-        file_put_contents($filePath, 'Fake H5P content for ' . $curriculum . ' - ' . $lesson . ' - ' . $unit);
-        
-        return $filePath;
-    }
 
    public static function uploadH5PDirectly($filePath, $courseId = 24, $sectionId = 7, $prompt)
 {
@@ -223,32 +157,61 @@ class MoodleController extends Controller
     }
 }
 
-    /**
-     * Get the context ID of a course.
-     *
-     * @param int $courseId
-     * @return int
-     */
-    private static function getCourseContextId($courseId)
-    {
-        // This function should call Moodle API to get the context ID for the given course ID
-        // Moodle's API `core_course_get_courses` can be used to fetch course information, which includes the context ID.
-        $client = new Client();
-        $response = $client->request('POST', env('MOODLE_API_URL'), [
-            'query' => [
-                'wstoken' => env('MOODLE_API_TOKEN'),
-                'wsfunction' => 'core_course_get_courses',
-                'moodlewsrestformat' => 'json',
-                'options[ids][0]' => $courseId
-            ]
-        ]);
-    
-        $courseData = json_decode($response->getBody()->getContents());
-    
-        if (!empty($courseData) && isset($courseData[0]->contextid)) {
-            return $courseData[0]->contextid;
+    protected static string $prompt = '
+        Generate a JSON array with the following structure:
+        {
+            "question": "What is a gravity well?",
+            "answers": [
+                "A region of space where the gravitational pull is so strong that objects are drawn toward it",
+                "A tunnel through space that allows for faster-than-light travel",
+                "A source of magnetic energy in space",
+                "A point in space where gravity is absent"
+            ],
+            "correct": 0
         }
-    
-        return 1; // Default context ID if not found
+
+        Using this structure, create 5 questions based on the following lesson data: "%theme%". Each question should contain four options, and the correct answer should be specified by its index in the correct field. The response should only return the JSON array without any additional text or explanations.
+    ';
+
+        public static function generateContentFromGPT(string $prompt)
+    {
+        $newPrompt = str_replace("%theme%", $prompt, self::$prompt);
+
+        $json = GPTAction::handle($newPrompt);
+
+        // Get the existing content.json from the storage
+        $content_structure = json_decode(Storage::disk('local')->get('/h5p/content.json'), true);
+
+        // Replace the questions in the content structure with generated content
+        $content_structure["choices"] = json_decode($json, true);
+
+        // Return the updated content JSON
+        return [json_encode($content_structure), $json];
     }
+
+    public static function createH5PFile(string $filename, string $content)
+    {
+        // Get the path to the template files
+        $h5pPath = storage_path('app/private/h5p/');
+
+        // Create a new ZipArchive
+        $zip = new ZipArchive();
+        $filePath = storage_path('app/private/h5p/generated/' . $filename);
+
+        if ($zip->open($filePath, ZipArchive::CREATE) === TRUE) {
+            // Add the h5p.json file to the ZIP
+            $zip->addFile($h5pPath . 'h5p.json', 'h5p.json');
+
+            // Add the dynamically generated content to the ZIP under content/content.json
+            $zip->addFromString('content/content.json', $content);
+
+            // Close the ZIP file
+            $zip->close();
+        } else {
+            throw new \Exception('Unable to create H5P file at ' . $filePath . '. Check directory permissions.');
+        }
+
+        return $filePath;
+    }
+
 }
