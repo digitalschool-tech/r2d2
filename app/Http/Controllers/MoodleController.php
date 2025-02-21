@@ -29,14 +29,14 @@ class MoodleController extends Controller
     public function generateH5PAndUpload(Request $request)
     {
         try {
-            \Laravel\Telescope\Telescope::recordInfo('Starting H5P generation and upload process');
+            Log::info('Starting H5P generation and upload process');
             
             $lesson = $request->input('lesson');
             $unit = $request->input('unit');
             $courseId = $request->input('course_id', 24);
             $sectionId = $request->input('section_id', 7);
 
-            \Laravel\Telescope\Telescope::recordInfo('Input parameters', [
+            Log::info('Input parameters', [
                 'lesson' => $lesson,
                 'unit' => $unit,
                 'courseId' => $courseId,
@@ -45,20 +45,20 @@ class MoodleController extends Controller
 
             // Validate inputs
             if (!$lesson || !$unit) {
-                \Laravel\Telescope\Telescope::recordInfo('Validation failed: Missing lesson or unit');
+                Log::warning('Validation failed: Missing lesson or unit');
                 return response()->json(['error' => 'Lesson and unit are required.'], 400);
             }
 
             // Find the curriculum content
-            \Laravel\Telescope\Telescope::recordInfo('Finding curriculum content');
+            Log::info('Finding curriculum content');
             $content = $this->findCurriculum($unit, $lesson);
 
             // Create the H5P file
-            \Laravel\Telescope\Telescope::recordInfo('Creating H5P file');
+            Log::info('Creating H5P file');
             $filename = 'h5p_' . uniqid() . '.h5p';
             $h5pFilePath = $this->createH5PFile($filename, $content);
 
-            \Laravel\Telescope\Telescope::recordInfo('H5P file created', [
+            Log::info('H5P file created', [
                 'path' => $h5pFilePath
             ]);
 
@@ -68,10 +68,10 @@ class MoodleController extends Controller
             }
 
             // Upload H5P file to Moodle
-            \Laravel\Telescope\Telescope::recordInfo('Uploading H5P to Moodle');
+            Log::info('Uploading H5P to Moodle');
             $uploadResponse = $this->uploadH5PDirectly($h5pFilePath, $courseId, $sectionId, $content);
 
-            \Laravel\Telescope\Telescope::recordInfo('Upload completed successfully', [
+            Log::info('Upload completed successfully', [
                 'response' => $uploadResponse
             ]);
 
@@ -81,8 +81,9 @@ class MoodleController extends Controller
             ], 200);
 
         } catch (\Exception $e) {
-            \Laravel\Telescope\Telescope::recordException($e);
-            Log::error('Error in generateH5PAndUpload: ' . $e->getMessage());
+            Log::error('Error in generateH5PAndUpload: ' . $e->getMessage(), [
+                'exception' => $e
+            ]);
             return response()->json(['error' => 'An error occurred: ' . $e->getMessage()], 500);
         }
     }
@@ -110,7 +111,7 @@ class MoodleController extends Controller
      */
     public function uploadH5PDirectly(string $filePath, int $courseId, int $sectionId, string $content)
     {
-        \Laravel\Telescope\Telescope::recordInfo('Starting direct H5P upload', [
+        Log::info('Starting direct H5P upload', [
             'courseId' => $courseId,
             'sectionId' => $sectionId,
             'content' => $content
@@ -118,14 +119,14 @@ class MoodleController extends Controller
 
         // Validate the H5P file
         $this->validateH5PFile($filePath);
-        \Laravel\Telescope\Telescope::recordInfo('H5P file validated');
+        Log::info('H5P file validated');
 
         // Create the request payload
         $jsonContent = $this->prepareJsonContent($content);
-        \Laravel\Telescope\Telescope::recordInfo('JSON content prepared');
+        Log::info('JSON content prepared');
 
         try {
-            \Laravel\Telescope\Telescope::recordInfo('Sending upload request to Moodle');
+            Log::info('Sending upload request to Moodle');
             $fileHandle = fopen($filePath, 'r');
             $response = Http::timeout(30)
                 ->withHeaders(['Accept' => '*/*'])
@@ -142,18 +143,19 @@ class MoodleController extends Controller
             fclose($fileHandle);
 
             if ($response->failed()) {
-                \Laravel\Telescope\Telescope::recordInfo('Upload failed', [
+                Log::error('Upload failed', [
                     'response' => $response->body()
                 ]);
                 throw new \Exception('Failed to upload H5P: ' . $response->body());
             }
 
-            \Laravel\Telescope\Telescope::recordInfo('Upload successful');
+            Log::info('Upload successful');
             return $response->json();
 
         } catch (\Exception $e) {
-            \Laravel\Telescope\Telescope::recordException($e);
-            Log::error('Error uploading H5P to Moodle: ' . $e->getMessage());
+            Log::error('Error uploading H5P to Moodle: ' . $e->getMessage(), [
+                'exception' => $e
+            ]);
             throw $e;
         }
     }
@@ -233,6 +235,9 @@ class MoodleController extends Controller
 
         // Get the existing content.json from storage and update it
         $contentStructure = json_decode(Storage::disk('local')->get('/h5p/content.json'), true);
+        Log::info('Content structure', [
+            'structure' => $contentStructure
+        ]);
         $contentStructure["choices"] = json_decode($json, true);
 
         return json_encode($contentStructure);
