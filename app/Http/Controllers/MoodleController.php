@@ -124,7 +124,10 @@ class MoodleController extends Controller
         // Create the request payload
         $jsonContent = $this->prepareJsonContent($content);
         Log::info('JSON content prepared');
-
+        Log::info('JSON content', [
+            'content' => $jsonContent
+        ]);
+        
         try {
             Log::info('Sending upload request to Moodle');
             
@@ -278,7 +281,10 @@ class MoodleController extends Controller
     {
         $h5pPath = storage_path('app/private/h5p/');
         $filePath = storage_path('app/private/h5p/generated/' . $filename);
-
+        Log::info('File path', [
+            'path' => $filePath,
+            'h5pPath' => $h5pPath
+        ]);
         // Create a new ZipArchive instance and add files
         $zip = new ZipArchive();
 
