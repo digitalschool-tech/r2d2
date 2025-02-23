@@ -279,8 +279,8 @@ class MoodleController extends Controller
      */
     public function createH5PFile(string $filename, string $content): string
     {
-        $h5pPath = storage_path('app/private/h5p/');
-        $filePath = storage_path('app/private/h5p/generated/' . $filename);
+        $h5pPath = storage_path('app/public/h5p/');
+        $filePath = storage_path('app/public/h5p/generated/' . $filename);
         Log::info('File path', [
             'path' => $filePath,
             'h5pPath' => $h5pPath
