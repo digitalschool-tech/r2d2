@@ -110,7 +110,7 @@ class MoodleController extends Controller
     /**
      * Upload the generated H5P file to Moodle.
      */
-    public function uploadH5PDirectly(string $filePath, int $courseId, int $sectionId, string $content, string $slimContent)
+    public function uploadH5PDirectly(string $filePath, int $courseId, int $sectionId, string $content)
     {
         Log::info('Starting direct H5P upload', [
             'courseId' => $courseId,
@@ -148,7 +148,7 @@ class MoodleController extends Controller
                     'section' => $sectionId,
                     'username' => env('MOODLE_USERNAME', 'dionosmani'),
                     'password' => env('MOODLE_PASSWORD', 'zmExxi$f#NbSV0GY'),
-                    'jsoncontent' => $slimContent
+                    'jsoncontent' => $content
                 ]);
 
             if ($response->failed()) {
@@ -189,7 +189,7 @@ class MoodleController extends Controller
     private function prepareJsonContent(string $content): string
     {
         $jsonContent = json_encode([
-            json_decode($content, true),
+            "choices" => $content,
             "behaviour" => [
                 "timeoutCorrect" => 1000,
                 "timeoutWrong" => 1000,
@@ -242,14 +242,7 @@ class MoodleController extends Controller
         $gptPrompt = str_replace("%theme%", $prompt, $this->getGptPrompt());
         $json = GPTAction::handle($gptPrompt);
 
-        // Get the existing content.json from storage and update it
-        $contentStructure = json_decode(Storage::disk('local')->get('/h5p/content.json'), true);
-        Log::info('Content structure', [
-            'structure' => $contentStructure
-        ]);
-        $contentStructure["choices"] = json_decode($json, true);
-
-        return json_encode($contentStructure);
+        return json_decode($json, true);
     }
 
     /**

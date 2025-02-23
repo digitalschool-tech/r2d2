@@ -1,0 +1,102 @@
+[
+    {
+        "question": "What is the primary purpose of a climate control system in a biodome?",
+        "answers": [
+            "To regulate temperature, humidity, and air quality for optimal plant growth",
+            "To filter water for irrigation",
+            "To provide lighting for photosynthesis",
+            "To supply nutrients to the soil"
+        ],
+        "subContentId": "question-1"
+    },
+    {
+        "question": "Which of the following factors is most critical for maintaining air quality inside a biodome?",
+        "answers": [
+            "Carbon dioxide levels and oxygen balance",
+            "Soil acidity levels",
+            "Nutrient absorption rate",
+            "Number of plant species"
+        ],
+        "subContentId": "question-2"
+    },
+    {
+        "question": "What is the ideal temperature range for most temperate plant species in a biodome?",
+        "answers": [
+            "15-25\u00b0C (59-77\u00b0F)",
+            "5-15\u00b0C (41-59\u00b0F)",
+            "30-40\u00b0C (86-104\u00b0F)",
+            "40-50\u00b0C (104-122\u00b0F)"
+        ],
+        "subContentId": "question-3"
+    },
+    {
+        "question": "Which gas is necessary for photosynthesis, making it essential to monitor in a biodome?",
+        "answers": [
+            "Carbon dioxide (CO2)",
+            "Nitrogen (N2)",
+            "Methane (CH4)",
+            "Sulfur dioxide (SO2)"
+        ],
+        "subContentId": "question-4"
+    },
+    {
+        "question": "Humidity is a critical factor in plant growth. What does high humidity in a biodome often lead to?",
+        "answers": [
+            "Increased risk of fungal diseases",
+            "Enhanced plant growth",
+            "Reduced oxygen levels",
+            "Slower nutrient absorption"
+        ],
+        "subContentId": "question-5"
+    },
+    {
+        "question": "How does temperature regulation affect plant growth in a controlled environment?",
+        "answers": [
+            "It influences metabolic rates, impacting photosynthesis and respiration",
+            "It changes the chemical composition of the soil",
+            "It primarily affects the color of the plants",
+            "It only impacts seed germination, not mature plants"
+        ],
+        "subContentId": "question-6"
+    },
+    {
+        "question": "Which of the following systems is responsible for filtering and circulating air within a biodome?",
+        "answers": [
+            "HVAC (Heating, Ventilation, and Air Conditioning)",
+            "Irrigation system",
+            "Nutrient distribution system",
+            "Solar panel grid"
+        ],
+        "subContentId": "question-7"
+    },
+    {
+        "question": "Why is it important to monitor carbon dioxide levels in a biodome?",
+        "answers": [
+            "CO2 is essential for photosynthesis, but excessive amounts can harm plants",
+            "CO2 cools the air, ensuring proper temperatures",
+            "CO2 prevents nutrient loss in the soil",
+            "CO2 is required to create artificial light for plants"
+        ],
+        "subContentId": "question-8"
+    },
+    {
+        "question": "What role does ventilation play in the climate control of a biodome?",
+        "answers": [
+            "It helps maintain fresh air, preventing buildup of toxic gases",
+            "It controls soil nutrient levels",
+            "It improves water distribution",
+            "It enhances the brightness of natural sunlight"
+        ],
+        "subContentId": "question-9"
+    },
+    {
+        "question": "In controlled environments like biodomes, why is it important to have real-time climate monitoring?",
+        "answers": [
+            "It ensures immediate adjustments can be made for optimal growing conditions",
+            "It is only necessary for research purposes",
+            "It prevents the escape of rare plant species",
+            "It reduces the energy consumption of the biodome"
+        ],
+        "subContentId": "question-10"
+    }
+]
