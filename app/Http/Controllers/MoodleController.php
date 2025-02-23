@@ -237,7 +237,7 @@ class MoodleController extends Controller
     /**
      * Generate content using GPT.
      */
-    public function generateContentFromGPT(string $prompt): string
+    public function generateContentFromGPT(string $prompt)
     {
         $gptPrompt = str_replace("%theme%", $prompt, $this->getGptPrompt());
         $json = GPTAction::handle($gptPrompt);
