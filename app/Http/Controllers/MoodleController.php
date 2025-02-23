@@ -189,7 +189,7 @@ class MoodleController extends Controller
     private function prepareJsonContent(string $content): string
     {
         $jsonContent = json_encode([
-            "choices" => json_decode($content, true),
+            json_decode($content, true),
             "behaviour" => [
                 "timeoutCorrect" => 1000,
                 "timeoutWrong" => 1000,
