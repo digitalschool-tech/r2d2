@@ -19,8 +19,8 @@ class MoodleController extends Controller
     public function __construct()
     {
         // Ideally, these should be set in a config file or environment variables.
-        $this->moodleApiUrl = env('MOODLE_API_URL', 'https://dev-moodle.digitalschool.tech/hello.php');
-        $this->moodleToken = env('MOODLE_API_TOKEN', 'ardit');
+        $this->moodleApiUrl = 'https://dev-moodle.digitalschool.tech/hello.php';
+        $this->moodleToken =  'ardit';
     }
 
     /**
@@ -65,6 +65,7 @@ class MoodleController extends Controller
 
             // Check if the file exists
             if (!file_exists($h5pFilePath)) {
+                Log::error('H5P file not found at expected path', ['path' => $h5pFilePath]);
                 return response()->json(['error' => 'H5P file not found: ' . $h5pFilePath], 400);
             }
 
@@ -112,33 +113,32 @@ class MoodleController extends Controller
      */
     public function uploadH5PDirectly(string $filePath, int $courseId, int $sectionId, string $content)
     {
-        Log::info('Starting direct H5P upload', [
-            'courseId' => $courseId,
-            'sectionId' => $sectionId,
-            'content' => $content
-        ]);
+        Log::info('Starting direct H5P upload');
 
-        // Validate the H5P file
         $this->validateH5PFile($filePath);
-        Log::info('H5P file validated');
 
         try {
-            Log::info('Sending upload request to Moodle');
-            
-            // Use file contents directly instead of file handle
-            $fileContents = file_get_contents($filePath);
-            Log::info('File contents', [
-                'fileContents' => $fileContents,
-                'filePath' => $filePath
-            ]);
+            $fileResource = fopen($filePath, 'r');
+            if ($fileResource === false) {
+                Log::error('Unable to open file for reading', ['filePath' => $filePath]);
+                throw new \Exception('Unable to open file: ' . $filePath);
+            }
+
             $response = Http::timeout(30)
-                ->withHeaders(['Accept' => '*/*'])
+                ->withHeaders([
+                    'Accept' => '*/*',
+                    'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                ])
+                ->withCookies([
+                    'MoodleSession' => env('MOODLE_SESSION_COOKIE', 'dvjumqbpuuvmrf49gcovs8l4th')
+                ], parse_url($this->moodleApiUrl, PHP_URL_HOST))
                 ->attach(
                     'h5pfile',
-                    $fileContents,
+                    $fileResource,
                     basename($filePath),
                     ['Content-Type' => 'application/octet-stream']
                 )
+                ->asMultipart()
                 ->post($this->moodleApiUrl, [
                     'token' => $this->moodleToken,
                     'course' => $courseId,
@@ -147,20 +147,23 @@ class MoodleController extends Controller
                     'password' => env('MOODLE_PASSWORD', 'zmExxi$f#NbSV0GY'),
                     'jsoncontent' => $content
                 ]);
-            
+
+            fclose($fileResource);
+
             if ($response->failed()) {
                 Log::error('Upload failed', [
-                    'response' => $response->body()
+                    'response' => $response->body(),
+                    'status' => $response->status()
                 ]);
                 throw new \Exception('Failed to upload H5P: ' . $response->body());
             }
 
-            Log::info('Upload successful');
             return $response->json();
 
         } catch (\Exception $e) {
             Log::error('Error uploading H5P to Moodle: ' . $e->getMessage(), [
-                'exception' => $e
+                'exception' => $e,
+                'trace' => $e->getTraceAsString()
             ]);
             throw $e;
         }
@@ -271,19 +274,35 @@ class MoodleController extends Controller
     public function createH5PFile(string $filename, string $content): string
     {
         $h5pPath = storage_path('app/public/h5p/');
-        $filePath = storage_path('app/public/h5p/generated/' . $filename);
+        $generatedPath = $h5pPath . 'generated/';
+
+        // Ensure the generated directory exists
+        if (!is_dir($generatedPath)) {
+            if (!mkdir($generatedPath, 0755, true)) {
+                throw new \Exception('Unable to create directory: ' . $generatedPath);
+            }
+        }
+
+        $filePath = $generatedPath . $filename;
         Log::info('File path', [
             'path' => $filePath,
             'h5pPath' => $h5pPath
         ]);
-        // Create a new ZipArchive instance and add files
+
         $zip = new ZipArchive();
 
         if ($zip->open($filePath, ZipArchive::CREATE) !== true) {
             throw new \Exception('Unable to create H5P file at ' . $filePath . '. Check directory permissions.');
         }
 
-        $zip->addFile($h5pPath . 'h5p.json', 'h5p.json');
+        // Add the base H5P json file. Ensure it exists.
+        $baseJson = $h5pPath . 'h5p.json';
+        if (!file_exists($baseJson)) {
+            throw new \Exception('Missing base h5p.json file at ' . $baseJson);
+        }
+        $zip->addFile($baseJson, 'h5p.json');
+
+        // Add the generated content
         $zip->addFromString('content/content.json', $content);
         $zip->close();
 
