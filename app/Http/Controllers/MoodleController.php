@@ -10,6 +10,7 @@ use App\Models\Curriculum;
 use App\Actions\GPTAction;
 use Symfony\Component\HttpFoundation\File\Exception\FileNotFoundException;
 use ZipArchive;
+use App\Actions\CreateNewMissionAction;
 
 class MoodleController extends Controller
 {
@@ -158,6 +159,7 @@ class MoodleController extends Controller
                 throw new \Exception('Failed to upload H5P: ' . $response->body());
             }
 
+            CreateNewMissionAction::handle($content, $response->json()['viewdirecturl']);
             return $response->json();
 
         } catch (\Exception $e) {
