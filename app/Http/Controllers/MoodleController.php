@@ -51,8 +51,8 @@ class MoodleController extends Controller
 
             // Find the curriculum content
             Log::info('Finding curriculum content');
-            $slimContent = $this->findCurriculum($unit, $lesson);
-            $content = $this->prepareJsonContent($slimContent);
+            $content = $this->findCurriculum($unit, $lesson);
+            $content = $this->prepareJsonContent($content);
 
             // Create the H5P file
             Log::info('Creating H5P file');
@@ -70,7 +70,7 @@ class MoodleController extends Controller
 
             // Upload H5P file to Moodle
             Log::info('Uploading H5P to Moodle');
-            $uploadResponse = $this->uploadH5PDirectly($h5pFilePath, $courseId, $sectionId, $content, $slimContent);
+            $uploadResponse = $this->uploadH5PDirectly($h5pFilePath, $courseId, $sectionId, $content);
 
             Log::info('Upload completed successfully', [
                 'response' => $uploadResponse
