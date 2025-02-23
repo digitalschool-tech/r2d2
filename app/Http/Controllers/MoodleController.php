@@ -142,7 +142,7 @@ class MoodleController extends Controller
                     'section' => $sectionId,
                     'username' => env('MOODLE_USERNAME', 'dionosmani'),
                     'password' => env('MOODLE_PASSWORD', 'zmExxi$f#NbSV0GY'),
-                    'jsoncontent' => json_encode(json_decode($content, true)["choices"])w
+                    'jsoncontent' => json_encode(json_decode($content, true)["choices"])
                 ]);
             
             Log::info('Response', [
