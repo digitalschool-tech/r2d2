@@ -140,19 +140,11 @@ class MoodleController extends Controller
                     'token' => $this->moodleToken,
                     'course' => $courseId,
                     'section' => $sectionId,
-                    'username' => env('MOODLE_USERNAME', 'dionosmani'),
+                    'username' => env('MOODLE_USERNAME', 'Dionosmani'),
                     'password' => env('MOODLE_PASSWORD', 'zmExxi$f#NbSV0GY'),
-                    'jsoncontent' => json_encode(json_decode($content, true)["choices"])
+                    'jsoncontent' => $content
                 ]);
             
-            Log::info('Response', [
-                'response' => $response->body(),
-                'response_json' => $response->json(),
-                'response_status' => $response->status(),
-                'response_headers' => $response->headers(),
-                'response_content_type' => $response->header('Content-Type'),
-                'response' => json_encode(json_decode($response, true))
-            ]);
             if ($response->failed()) {
                 Log::error('Upload failed', [
                     'response' => $response->body()
