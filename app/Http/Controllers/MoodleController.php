@@ -92,7 +92,7 @@ class MoodleController extends Controller
     /**
      * Find curriculum data by unit and lesson.
      */
-    public function findCurriculum(string $unit, string $lesson): string
+    public function findCurriculum(string $unit, string $lesson)
     {
         // Fetch curriculum data from the database
         $curriculumData = Curriculum::where('unit', $unit)->where('lesson', $lesson)
