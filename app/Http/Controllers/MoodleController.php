@@ -123,9 +123,9 @@ class MoodleController extends Controller
         Log::info('H5P file validated');
 
         // Create the request payload
-        Log::info('JSON content prepared');
-        Log::info('JSON content', [
-            'content' => $content
+        Log::warning('JSON content', [
+            'content' => $content,
+            'slimContent' => $slimContent
         ]);
         
         try {
