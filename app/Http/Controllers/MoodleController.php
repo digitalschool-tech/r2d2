@@ -51,8 +51,8 @@ class MoodleController extends Controller
 
             // Find the curriculum content
             Log::info('Finding curriculum content');
-            $content = $this->findCurriculum($unit, $lesson);
-            $content = $this->prepareJsonContent($content);
+            $slimContent = $this->findCurriculum($unit, $lesson);
+            $content = $this->prepareJsonContent($slimContent);
 
             // Create the H5P file
             Log::info('Creating H5P file');
@@ -70,7 +70,7 @@ class MoodleController extends Controller
 
             // Upload H5P file to Moodle
             Log::info('Uploading H5P to Moodle');
-            $uploadResponse = $this->uploadH5PDirectly($h5pFilePath, $courseId, $sectionId, $content);
+            $uploadResponse = $this->uploadH5PDirectly($h5pFilePath, $courseId, $sectionId, $content, $slimContent);
 
             Log::info('Upload completed successfully', [
                 'response' => $uploadResponse
@@ -110,7 +110,7 @@ class MoodleController extends Controller
     /**
      * Upload the generated H5P file to Moodle.
      */
-    public function uploadH5PDirectly(string $filePath, int $courseId, int $sectionId, string $content)
+    public function uploadH5PDirectly(string $filePath, int $courseId, int $sectionId, string $content, string $slimContent)
     {
         Log::info('Starting direct H5P upload', [
             'courseId' => $courseId,
@@ -148,7 +148,7 @@ class MoodleController extends Controller
                     'section' => $sectionId,
                     'username' => env('MOODLE_USERNAME', 'dionosmani'),
                     'password' => env('MOODLE_PASSWORD', 'zmExxi$f#NbSV0GY'),
-                    'jsoncontent' => $content
+                    'jsoncontent' => $slimContent
                 ]);
 
             if ($response->failed()) {
