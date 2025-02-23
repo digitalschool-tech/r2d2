@@ -127,7 +127,10 @@ class MoodleController extends Controller
             
             // Use file contents directly instead of file handle
             $fileContents = file_get_contents($filePath);
-            
+            Log::info('File contents', [
+                'fileContents' => $fileContents,
+                'filePath' => $filePath
+            ]);
             $response = Http::timeout(30)
                 ->withHeaders(['Accept' => '*/*'])
                 ->attach(
