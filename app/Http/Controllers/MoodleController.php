@@ -122,12 +122,6 @@ class MoodleController extends Controller
         $this->validateH5PFile($filePath);
         Log::info('H5P file validated');
 
-        // Create the request payload
-        Log::warning('JSON content', [
-            'content' => $content,
-            'slimContent' => $slimContent
-        ]);
-        
         try {
             Log::info('Sending upload request to Moodle');
             
