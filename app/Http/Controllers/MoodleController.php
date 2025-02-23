@@ -52,6 +52,7 @@ class MoodleController extends Controller
             // Find the curriculum content
             Log::info('Finding curriculum content');
             $content = $this->findCurriculum($unit, $lesson);
+            $content = $this->prepareJsonContent($content);
 
             // Create the H5P file
             Log::info('Creating H5P file');
@@ -122,10 +123,9 @@ class MoodleController extends Controller
         Log::info('H5P file validated');
 
         // Create the request payload
-        $jsonContent = $this->prepareJsonContent($content);
         Log::info('JSON content prepared');
         Log::info('JSON content', [
-            'content' => $jsonContent
+            'content' => $content
         ]);
         
         try {
@@ -148,7 +148,7 @@ class MoodleController extends Controller
                     'section' => $sectionId,
                     'username' => env('MOODLE_USERNAME', 'dionosmani'),
                     'password' => env('MOODLE_PASSWORD', 'zmExxi$f#NbSV0GY'),
-                    'jsoncontent' => $jsonContent
+                    'jsoncontent' => $content
                 ]);
 
             if ($response->failed()) {
