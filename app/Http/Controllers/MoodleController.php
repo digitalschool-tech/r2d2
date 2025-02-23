@@ -34,8 +34,8 @@ class MoodleController extends Controller
             
             $lesson = $request->input('lesson');
             $unit = $request->input('unit');
-            $courseId = $request->input('course_id', 24);
-            $sectionId = $request->input('section_id', 7);
+            $courseId = $request->input('course_id', 100103);
+            $sectionId = $request->input('section_id', 1);
 
             Log::info('Input parameters', [
                 'lesson' => $lesson,
@@ -101,12 +101,10 @@ class MoodleController extends Controller
             ->select('title', 'content', 'lesson', 'unit')
             ->first();
 
-        if (!$curriculumData) {
-            throw new \Exception('Curriculum not found for unit: ' . $unit . ', lesson: ' . $lesson);
-        }
+        $curriculumData = (!$curriculumData) ? "Lesson: " . $lesson . " Unit: " . $unit : $curriculumData->content;
 
         // Generate content from GPT
-        return $this->generateContentFromGPT($curriculumData->content);
+        return $this->generateContentFromGPT($curriculumData);
     }
 
     /**
