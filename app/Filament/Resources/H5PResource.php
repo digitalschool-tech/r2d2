@@ -57,8 +57,8 @@ class H5PResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('filename')
                     ->label('File')
-                    ->url(fn ($record) => Storage::disk('local')->url('h5p/generated/' . $record->filename))
-                    ->openUrlInNewTab()
+                    ->formatStateUsing(fn ($record) => "<a href='/storage/h5p/generated/" . $record->filename . "' target='_blank'>{$record->filename}</a>")
+                    ->html()
                     ->searchable()
                     ->sortable(),
                 
