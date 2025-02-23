@@ -186,7 +186,7 @@ class MoodleController extends Controller
     /**
      * Prepare the JSON content for the H5P upload.
      */
-    private function prepareJsonContent(string $content): string
+    private function prepareJsonContent($content)
     {
         $jsonContent = json_encode([
             "choices" => $content,
