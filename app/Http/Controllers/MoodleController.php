@@ -142,7 +142,7 @@ class MoodleController extends Controller
                     'section' => $sectionId,
                     'username' => env('MOODLE_USERNAME', 'dionosmani'),
                     'password' => env('MOODLE_PASSWORD', 'zmExxi$f#NbSV0GY'),
-                    'jsoncontent' => $content
+                    'jsoncontent' => json_encode($content)
                 ]);
 
             if ($response->failed()) {
@@ -254,7 +254,8 @@ class MoodleController extends Controller
                     "A source of magnetic energy in space",
                     "A point in space where gravity is absent"
                 ],
-                "correct": 0
+                "correct": 0,
+                "subContentId": "question-1"
             }
 
             Using this structure, create 5 questions based on the following lesson data: "%theme%". Each question should contain four options, and the correct answer should be specified by its index in the correct field. The response should only return the JSON array without any additional text or explanations.
