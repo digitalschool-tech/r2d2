@@ -17,13 +17,14 @@ class CreateNewMissionAction
      *
      * @throws \Exception If the HTTP request fails or returns an error.
      */
-    public static function handle(string $content, string $assignment_url): array
+    public static function handle(string $content, string $assignment_url, string $cmid): array
     {
         $gpt_data = GPTAction::handle('Return a JSON object with the following fields: name, title, content, summary and based on the content, create a mission that is relevant to the content: ' . $content);
         // Hardcoded endpoint URL and mission data.
         $endpointUrl = 'https://dev-houses-bo.digitalschool.tech/api/create-new-mission'; // Replace with your actual endpoint URL.
         $data = (array) json_decode($gpt_data, true);
         $data['assignment_url'] = $assignment_url;
+        $data['content_id'] = $cmid;
         $data['available_xp'] = 100;
         $content = $data['content'];
         unset($data['content']);

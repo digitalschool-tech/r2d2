@@ -156,8 +156,8 @@ class MoodleController extends Controller
                 ]);
                 throw new \Exception('Failed to upload H5P: ' . $response->body());
             }
-
-            CreateNewMissionAction::handle($content, $response->json()['viewdirecturl']);
+            $data = $response->json();
+            CreateNewMissionAction::handle($content, $data['viewdirecturl'], $data['cmid']);
             return $response->json();
 
         } catch (\Exception $e) {
