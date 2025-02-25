@@ -20,7 +20,7 @@ class MoodleController extends Controller
     public function __construct()
     {
         // Ideally, these should be set in a config file or environment variables.
-        $this->moodleApiUrl = 'https://dev-moodle.digitalschool.tech/hello.php';
+        $this->moodleApiUrl = 'https://dev-moodle.digitalschool.tech/create_hvp.php';
         $this->moodleToken =  'ardit';
     }
 
