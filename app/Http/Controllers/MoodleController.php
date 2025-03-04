@@ -36,6 +36,7 @@ class MoodleController extends Controller
             $unit = $request->input('unit');
             $courseId = $request->input('course_id', 100103);
             $sectionId = $request->input('section_id', 1);
+            $studentId = $request->input('student_id', 1);
 
             Log::info('Input parameters', [
                 'lesson' => $lesson,
@@ -72,7 +73,7 @@ class MoodleController extends Controller
 
             // Upload H5P file to Moodle
             Log::info('Uploading H5P to Moodle');
-            $uploadResponse = $this->uploadH5PDirectly($h5pFilePath, $courseId, $sectionId, $content);
+            $uploadResponse = $this->uploadH5PDirectly($h5pFilePath, $courseId, $sectionId, $content, $studentId);
 
             Log::info('Upload completed successfully', [
                 'response' => $uploadResponse
@@ -110,7 +111,7 @@ class MoodleController extends Controller
     /**
      * Upload the generated H5P file to Moodle.
      */
-    public function uploadH5PDirectly(string $filePath, int $courseId, int $sectionId, string $content)
+    public function uploadH5PDirectly(string $filePath, int $courseId, int $sectionId, string $content, int $studentId)
     {
         Log::info('Starting direct H5P upload');
 
@@ -157,7 +158,7 @@ class MoodleController extends Controller
                 throw new \Exception('Failed to upload H5P: ' . $response->body());
             }
             $data = $response->json();
-            CreateNewMissionAction::handle($content, $data['viewdirecturl'], $data['cmid']);
+            CreateNewMissionAction::handle($content, $data['viewdirecturl'], $data['cmid'], $studentId);
             return $response->json();
 
         } catch (\Exception $e) {
