@@ -6,6 +6,7 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
 
 class CustomCors
@@ -13,8 +14,15 @@ class CustomCors
     public function handle(Request $request, Closure $next): Response
     {
         $allowedOrigin = 'https://staging-app.digitalschool.tech';
+        $incomingOrigin = $request->headers->get('Origin');
 
-        if ($request->headers->get('Origin') !== $allowedOrigin) {
+        Log::info('CORS Check', [
+            'incoming_origin' => $incomingOrigin,
+            'allowed_origin' => $allowedOrigin,
+            'headers' => $request->headers->all()
+        ]);
+
+        if ($incomingOrigin !== $allowedOrigin) {
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 
