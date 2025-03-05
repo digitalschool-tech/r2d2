@@ -24,6 +24,7 @@ class FileListWidget extends Widget
                 ];
             })
             ->sortByDesc('created_at')
+            ->take(20)
             ->values();
     }
 
