@@ -22,36 +22,57 @@ class ProcessCurriculumPDFs extends Command
 
     private function extractDocContent(string $filePath): ?string
     {
-        // Check if it's actually an HTML file
         $content = file_get_contents($filePath);
-        if (str_contains($content, '<html') || str_contains($content, '<body')) {
-            // Parse HTML content
+        
+        // Check if content appears to be HTML/XML
+        if (preg_match('/<[^>]+>/', $content)) {
+            // Use DOM parser for HTML content
+            libxml_use_internal_errors(true);
             $dom = new \DOMDocument();
-            @$dom->loadHTML($content, LIBXML_NOERROR);
-            return trim(strip_tags($dom->saveHTML()));
+            $dom->loadHTML($content, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+            
+            // Extract only text content
+            $text = '';
+            $xpath = new \DOMXPath($dom);
+            
+            // Get all text nodes while excluding style and script tags
+            $textNodes = $xpath->query('//text()[not(ancestor::style) and not(ancestor::script)]');
+            
+            foreach ($textNodes as $node) {
+                $nodeText = trim($node->nodeValue);
+                if (!empty($nodeText)) {
+                    $text .= $nodeText . ' ';
+                }
+            }
+            
+            // Clean up the text
+            $text = preg_replace('/\s+/', ' ', $text); // Replace multiple spaces with single space
+            return trim($text);
         }
         
-        // Try using antiword for actual .doc files
-        $content = shell_exec("antiword " . escapeshellarg($filePath));
+        // Fall back to regular text extraction for non-HTML
+        return trim(strip_tags($content));
+    }
+
+    private function extractTextFromNode(\DOMNode $node, &$text) 
+    {
+        if ($node->nodeType === XML_TEXT_NODE) {
+            $text .= $node->nodeValue . ' ';
+            return;
+        }
+
+        // Preserve certain structural elements
+        $block_elements = ['p', 'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'];
         
-        if (empty($content)) {
-            try {
-                $phpWord = IOFactory::load($filePath);
-                $content = '';
-                foreach ($phpWord->getSections() as $section) {
-                    foreach ($section->getElements() as $element) {
-                        if (method_exists($element, '__toString')) {
-                            $content .= (string)$element . ' ';
-                        }
-                    }
-                }
-            } catch (\Exception $e) {
-                $this->warn("PhpWord fallback failed: " . $e->getMessage());
-                return null;
+        if (in_array(strtolower($node->nodeName), $block_elements)) {
+            $text .= "\n\n";
+        }
+
+        if ($node->hasChildNodes()) {
+            foreach ($node->childNodes as $child) {
+                $this->extractTextFromNode($child, $text);
             }
         }
-        
-        return trim($content);
     }
 
     public function handle()
