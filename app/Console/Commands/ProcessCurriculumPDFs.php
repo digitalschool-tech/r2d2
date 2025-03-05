@@ -22,14 +22,25 @@ class ProcessCurriculumPDFs extends Command
 
     private function extractDocContent(string $filePath): ?string
     {
-        $phpWord = IOFactory::load($filePath);
-        $content = '';
+        // Try using antiword for .doc files
+        $content = shell_exec("antiword " . escapeshellarg($filePath));
         
-        foreach ($phpWord->getSections() as $section) {
-            foreach ($section->getElements() as $element) {
-                if (method_exists($element, 'getText')) {
-                    $content .= $element->getText() . ' ';
+        if (empty($content)) {
+            // Fallback to trying PhpWord if antiword fails
+            try {
+                $phpWord = IOFactory::load($filePath);
+                $content = '';
+                
+                foreach ($phpWord->getSections() as $section) {
+                    foreach ($section->getElements() as $element) {
+                        if (method_exists($element, '__toString')) {
+                            $content .= (string)$element . ' ';
+                        }
+                    }
                 }
+            } catch (\Exception $e) {
+                $this->warn("PhpWord fallback failed: " . $e->getMessage());
+                return null;
             }
         }
         
