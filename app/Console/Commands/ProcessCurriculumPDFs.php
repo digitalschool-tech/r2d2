@@ -22,15 +22,22 @@ class ProcessCurriculumPDFs extends Command
 
     private function extractDocContent(string $filePath): ?string
     {
-        // Try using antiword for .doc files
+        // Check if it's actually an HTML file
+        $content = file_get_contents($filePath);
+        if (str_contains($content, '<html') || str_contains($content, '<body')) {
+            // Parse HTML content
+            $dom = new \DOMDocument();
+            @$dom->loadHTML($content, LIBXML_NOERROR);
+            return trim(strip_tags($dom->saveHTML()));
+        }
+        
+        // Try using antiword for actual .doc files
         $content = shell_exec("antiword " . escapeshellarg($filePath));
         
         if (empty($content)) {
-            // Fallback to trying PhpWord if antiword fails
             try {
                 $phpWord = IOFactory::load($filePath);
                 $content = '';
-                
                 foreach ($phpWord->getSections() as $section) {
                     foreach ($section->getElements() as $element) {
                         if (method_exists($element, '__toString')) {
