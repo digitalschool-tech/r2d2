@@ -49,23 +49,37 @@ class ProcessCurriculumPDFs extends Command
             try {
                 $filePath = Storage::disk('public')->path($curriculum->file_path);
                 if (!file_exists($filePath)) {
+                    $this->warn("File not found for curriculum ID {$curriculum->id}: {$filePath}");
                     continue;
                 }
 
                 $extension = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
-                $content = match ($extension) {
-                    'pdf' => $this->extractPdfContent($filePath),
-                    'doc', 'docx' => $this->extractDocContent($filePath),
-                    default => null,
-                };
+                
+                // Log file type for debugging
+                $this->info("Processing curriculum ID {$curriculum->id} - File type: {$extension}");
+                
+                // Skip unsupported file types
+                if (!in_array($extension, ['pdf', 'doc', 'docx'])) {
+                    $this->warn("Unsupported file type ({$extension}) for curriculum ID {$curriculum->id}");
+                    continue;
+                }
+
+                $content = null;
+                if ($extension === 'pdf') {
+                    $content = $this->extractPdfContent($filePath);
+                } elseif (in_array($extension, ['doc', 'docx'])) {
+                    $content = $this->extractDocContent($filePath);
+                }
 
                 if ($content) {
                     $curriculum->update([
                         'pdf_content' => $content
                     ]);
+                    $this->info("Successfully processed curriculum ID {$curriculum->id}");
                 }
             } catch (\Exception $e) {
                 $this->error("Failed to process file for curriculum ID {$curriculum->id}: {$e->getMessage()}");
+                $this->error("File path: {$filePath}");
             }
             
             $bar->advance();
