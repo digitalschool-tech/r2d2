@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Models\Curriculum;
+use App\Observers\CurriculumObserver;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Telescope\TelescopeServiceProvider;
 use Filament\Facades\Filament;
@@ -24,6 +26,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Curriculum::observe(CurriculumObserver::class);
         Filament::registerWidgets([
             FileListWidget::class,
         ]);

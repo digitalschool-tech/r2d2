@@ -15,6 +15,7 @@ class Curriculum extends Model
         'lesson',
         'unit',
         'file_path',
-        'prompt'
+        'prompt',
+        'pdf_content'
     ];
 }
