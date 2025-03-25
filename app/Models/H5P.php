@@ -25,6 +25,10 @@ class H5P extends Model
         'cmid'
     ];
 
+    protected $casts = [
+        'gpt_response' => 'array'
+    ];
+
     public function curriculum(): BelongsTo
     {
         return $this->belongsTo(Curriculum::class);
