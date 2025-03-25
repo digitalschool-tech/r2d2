@@ -80,6 +80,20 @@ class MoodleController extends Controller
                 'response' => $uploadResponse
             ]);
 
+            $prompt = "Generate quiz questions for Unit: {$request->unit}, Lesson: {$request->lesson}";
+            
+            // Create H5P record with prompt
+            $h5p = H5P::create([
+                'curriculum_id' => $curriculumData->id ?? null,
+                'course_id' => $courseId,
+                'section_id' => $sectionId,
+                'prompt' => $prompt,
+                'gpt_response' => $content,
+                'view_url' => $uploadResponse['viewdirecturl'],
+                'cmid' => $uploadResponse['cmid'],
+            ]);
+
+            CreateNewMissionAction::handle($content, $uploadResponse['viewdirecturl'], $uploadResponse['cmid'], $studentId);
             return response()->json([
                 'message' => 'H5P file generated and uploaded successfully.',
                 'upload_response' => $uploadResponse
@@ -160,18 +174,7 @@ class MoodleController extends Controller
             }
             $data = $response->json();
             
-            // Create H5P record
-            H5P::create([
-                'curriculum_id' => $curriculumData->id ?? null,
-                'course_id' => $courseId,
-                'section_id' => $sectionId,
-                'gpt_response' => $content,
-                'view_url' => $data['viewdirecturl'],
-                'cmid' => $data['cmid'],
-            ]);
-
-            CreateNewMissionAction::handle($content, $data['viewdirecturl'], $data['cmid'], $studentId);
-            return $response->json();
+            return $data;
 
         } catch (\Exception $e) {
             Log::error('Error uploading H5P to Moodle: ' . $e->getMessage(), [
