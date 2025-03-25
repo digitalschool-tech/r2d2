@@ -15,13 +15,21 @@ class CustomCors
     {
         $allowedOrigin = 'https://staging-app.digitalschool.tech';
         $incomingOrigin = $request->headers->get('Origin');
+        $stagingIp = '138.201.173.118';
 
         Log::info('CORS Check', [
             'incoming_origin' => $incomingOrigin,
             'allowed_origin' => $allowedOrigin,
+            'client_ip' => $request->ip(),
             'headers' => $request->headers->all()
         ]);
 
+        // Allow staging IP to bypass CORS
+        if ($request->ip() === $stagingIp) {
+            return $next($request);
+        }
+
+        // Regular CORS check for other requests
         if ($incomingOrigin !== $allowedOrigin) {
             return response()->json(['error' => 'Unauthorized'], 403);
         }
