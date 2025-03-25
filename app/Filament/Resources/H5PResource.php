@@ -28,13 +28,22 @@ class H5PResource extends Resource
                     ->schema([
                         Forms\Components\TextInput::make('curriculum.title')
                             ->label('Lesson Title')
-                            ->disabled(),
+                            ->disabled()
+                            ->afterStateHydrated(function ($component, $state, $record) {
+                                $component->state($record->curriculum?->title);
+                            }),
                         Forms\Components\TextInput::make('curriculum.unit')
                             ->label('Unit')
-                            ->disabled(),
+                            ->disabled()
+                            ->afterStateHydrated(function ($component, $state, $record) {
+                                $component->state($record->curriculum?->unit);
+                            }),
                         Forms\Components\TextInput::make('curriculum.lesson')
                             ->label('Lesson Number')
-                            ->disabled(),
+                            ->disabled()
+                            ->afterStateHydrated(function ($component, $state, $record) {
+                                $component->state($record->curriculum?->lesson);
+                            }),
                     ])->columns(3),
 
                 Forms\Components\Section::make('Curriculum Content')
@@ -42,14 +51,35 @@ class H5PResource extends Resource
                         Forms\Components\Textarea::make('curriculum.content')
                             ->label('Content')
                             ->disabled()
+                            ->afterStateHydrated(function ($component, $state, $record) {
+                                $component->state($record->curriculum?->content);
+                            })
                             ->columnSpanFull(),
                         Forms\Components\Textarea::make('curriculum.prompt')
                             ->label('Curriculum Prompt')
                             ->disabled()
+                            ->afterStateHydrated(function ($component, $state, $record) {
+                                $component->state($record->curriculum?->prompt);
+                            })
                             ->columnSpanFull(),
+                        Forms\Components\TextInput::make('curriculum.file_path')
+                            ->label('File Path')
+                            ->disabled()
+                            ->afterStateHydrated(function ($component, $state, $record) {
+                                $component->state($record->curriculum?->file_path);
+                            })
+                            ->suffixAction(
+                                Forms\Components\Actions\Action::make('open')
+                                    ->icon('heroicon-m-arrow-top-right-on-square')
+                                    ->url(fn ($record) => $record->curriculum?->file_path ? Storage::url($record->curriculum->file_path) : null, true)
+                                    ->visible(fn ($record) => $record->curriculum?->file_path !== null)
+                            ),
                         Forms\Components\Textarea::make('curriculum.pdf_content')
                             ->label('PDF Content')
                             ->disabled()
+                            ->afterStateHydrated(function ($component, $state, $record) {
+                                $component->state($record->curriculum?->pdf_content);
+                            })
                             ->columnSpanFull(),
                     ]),
 
@@ -73,15 +103,15 @@ class H5PResource extends Resource
                             ->label('GPT Response')
                             ->disabled()
                             ->columnSpanFull(),
-                        Forms\Components\TextInput::make('filename')
-                            ->disabled(),
-                        Forms\Components\TextInput::make('course_id')
-                            ->disabled(),
-                        Forms\Components\TextInput::make('section_id')
-                            ->disabled(),
-                        Forms\Components\TextInput::make('cmid')
-                            ->label('Course Module ID')
-                            ->disabled(),
+                        Forms\Components\TextInput::make('view_url')
+                            ->label('View URL')
+                            ->disabled()
+                            ->suffixAction(
+                                Forms\Components\Actions\Action::make('open')
+                                    ->icon('heroicon-m-arrow-top-right-on-square')
+                                    ->url(fn ($record) => $record->view_url, true)
+                                    ->visible(fn ($record) => $record->view_url !== null)
+                            ),
                     ])
                     ->columns(2),
             ]);
