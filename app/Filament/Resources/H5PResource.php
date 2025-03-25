@@ -73,11 +73,6 @@ class H5PResource extends Resource
                             ->label('GPT Response')
                             ->disabled()
                             ->columnSpanFull(),
-                        Forms\Components\TextInput::make('view_url')
-                            ->label('View URL')
-                            ->disabled()
-                            ->url()
-                            ->openUrlInNewTab(),
                         Forms\Components\TextInput::make('filename')
                             ->disabled(),
                         Forms\Components\TextInput::make('course_id')
