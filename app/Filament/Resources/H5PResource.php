@@ -47,11 +47,6 @@ class H5PResource extends Resource
                             ->label('Curriculum Prompt')
                             ->disabled()
                             ->columnSpanFull(),
-                        Forms\Components\TextInput::make('curriculum.file_path')
-                            ->label('File Path')
-                            ->disabled()
-                            ->url(fn ($record) => $record->curriculum?->file_path ? Storage::url($record->curriculum->file_path) : null)
-                            ->openUrlInNewTab(),
                         Forms\Components\Textarea::make('curriculum.pdf_content')
                             ->label('PDF Content')
                             ->disabled()
