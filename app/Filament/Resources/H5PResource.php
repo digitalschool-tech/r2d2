@@ -96,9 +96,6 @@ class H5PResource extends Resource
 
                 Forms\Components\Section::make('H5P Details')
                     ->schema([
-                        Forms\Components\Textarea::make('prompt')
-                            ->label('H5P Generation Prompt')
-                            ->disabled(),
                         Forms\Components\Textarea::make('gpt_response')
                             ->label('GPT Response')
                             ->disabled()
