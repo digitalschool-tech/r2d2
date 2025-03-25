@@ -18,4 +18,9 @@ class Curriculum extends Model
         'prompt',
         'pdf_content'
     ];
+
+    public function h5ps()
+    {
+        return $this->hasMany(H5P::class);
+    }
 }

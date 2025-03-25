@@ -10,6 +10,7 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Tables\Columns\TextColumn;
+use Illuminate\Database\Eloquent\Builder;
 
 class H5PResource extends Resource
 {
@@ -44,12 +45,14 @@ class H5PResource extends Resource
                     ->label('Lesson Title')
                     ->searchable()
                     ->sortable(),
-                TextColumn::make('curriculum.unit')
+                TextColumn::make('unit')
                     ->label('Unit')
+                    ->formatStateUsing(fn ($record) => $record->curriculum?->unit ?? '-')
                     ->searchable()
                     ->sortable(),
-                TextColumn::make('curriculum.lesson')
+                TextColumn::make('lesson')
                     ->label('Lesson')
+                    ->formatStateUsing(fn ($record) => $record->curriculum?->lesson ?? '-')
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('rating')
@@ -67,6 +70,7 @@ class H5PResource extends Resource
                     ->dateTime()
                     ->sortable(),
             ])
+            ->defaultSort('created_at', 'desc')
             ->filters([
                 //
             ])
@@ -96,5 +100,10 @@ class H5PResource extends Resource
             'edit' => Pages\EditH5P::route('/{record}/edit'),
             'view' => Pages\ViewH5P::route('/{record}'),
         ];
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()->with(['curriculum']);
     }
 } 
