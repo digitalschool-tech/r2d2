@@ -83,9 +83,12 @@ class MoodleController extends Controller
             $prompt = "Generate quiz questions for Unit: {$request->unit}, Lesson: {$request->lesson}";
             $filename = "quiz_unit_{$request->unit}_lesson_{$request->lesson}_" . time();
             
+            $curriculum = Curriculum::where('unit', $unit)->where('lesson', $lesson)
+            ->select('title', 'content', 'lesson', 'unit')
+            ->first();
             // Create H5P record with both prompt and filename
             $h5p = H5P::create([
-                'curriculum_id' => $curriculumData->id ?? null,
+                'curriculum_id' => $curriculum->id ?? null,
                 'course_id' => $courseId,
                 'section_id' => $sectionId,
                 'prompt' => $prompt,
