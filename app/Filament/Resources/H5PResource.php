@@ -10,7 +10,7 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Columns\StarColumn;
+use Filament\Tables\Columns\RatingColumn;
 
 class H5PResource extends Resource
 {
@@ -23,10 +23,8 @@ class H5PResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\TextInput::make('rating')
-                    ->numeric()
-                    ->minValue(1)
-                    ->maxValue(5),
+                Forms\Components\Rating::make('rating')
+                    ->max(5),
                 Forms\Components\Textarea::make('feedback')
                     ->maxLength(65535),
                 Forms\Components\Textarea::make('gpt_response')
@@ -52,7 +50,7 @@ class H5PResource extends Resource
                     ->label('Lesson')
                     ->searchable()
                     ->sortable(),
-                StarColumn::make('rating')
+                RatingColumn::make('rating')
                     ->sortable(),
                 TextColumn::make('feedback')
                     ->limit(50)
