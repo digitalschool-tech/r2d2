@@ -11,6 +11,7 @@ use App\Actions\GPTAction;
 use Symfony\Component\HttpFoundation\File\Exception\FileNotFoundException;
 use ZipArchive;
 use App\Actions\CreateNewMissionAction;
+use App\Models\H5P;
 
 class MoodleController extends Controller
 {
@@ -158,6 +159,17 @@ class MoodleController extends Controller
                 throw new \Exception('Failed to upload H5P: ' . $response->body());
             }
             $data = $response->json();
+            
+            // Create H5P record
+            H5P::create([
+                'curriculum_id' => $curriculumData->id ?? null,
+                'course_id' => $courseId,
+                'section_id' => $sectionId,
+                'gpt_response' => $content,
+                'view_url' => $data['viewdirecturl'],
+                'cmid' => $data['cmid'],
+            ]);
+
             CreateNewMissionAction::handle($content, $data['viewdirecturl'], $data['cmid'], $studentId);
             return $response->json();
 
