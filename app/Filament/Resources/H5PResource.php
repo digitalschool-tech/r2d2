@@ -89,7 +89,7 @@ class H5PResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListH5PS::route('/'),
+            'index' => Pages\ListH5Ps::route('/'),
             'create' => Pages\CreateH5P::route('/create'),
             'edit' => Pages\EditH5P::route('/{record}/edit'),
             'view' => Pages\ViewH5P::route('/{record}'),
