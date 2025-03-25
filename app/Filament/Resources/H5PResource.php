@@ -11,6 +11,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Tables\Columns\TextColumn;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Storage;
 
 class H5PResource extends Resource
 {
@@ -35,8 +36,29 @@ class H5PResource extends Resource
                             ->label('Lesson Number')
                             ->disabled(),
                     ])->columns(3),
-                
-                Forms\Components\Section::make('Feedback')
+
+                Forms\Components\Section::make('Curriculum Content')
+                    ->schema([
+                        Forms\Components\Textarea::make('curriculum.content')
+                            ->label('Content')
+                            ->disabled()
+                            ->columnSpanFull(),
+                        Forms\Components\Textarea::make('curriculum.prompt')
+                            ->label('Curriculum Prompt')
+                            ->disabled()
+                            ->columnSpanFull(),
+                        Forms\Components\TextInput::make('curriculum.file_path')
+                            ->label('File Path')
+                            ->disabled()
+                            ->url(fn ($record) => $record->curriculum?->file_path ? Storage::url($record->curriculum->file_path) : null)
+                            ->openUrlInNewTab(),
+                        Forms\Components\Textarea::make('curriculum.pdf_content')
+                            ->label('PDF Content')
+                            ->disabled()
+                            ->columnSpanFull(),
+                    ]),
+
+                Forms\Components\Section::make('H5P Feedback')
                     ->schema([
                         Forms\Components\TextInput::make('rating')
                             ->numeric()
@@ -45,15 +67,33 @@ class H5PResource extends Resource
                             ->label('Rating (1-5)'),
                         Forms\Components\Textarea::make('feedback')
                             ->maxLength(65535),
-                    ]),
+                    ])->columns(2),
 
-                Forms\Components\Section::make('GPT Response')
+                Forms\Components\Section::make('H5P Details')
                     ->schema([
+                        Forms\Components\Textarea::make('prompt')
+                            ->label('H5P Generation Prompt')
+                            ->disabled(),
                         Forms\Components\Textarea::make('gpt_response')
                             ->label('GPT Response')
                             ->disabled()
                             ->columnSpanFull(),
-                    ]),
+                        Forms\Components\TextInput::make('view_url')
+                            ->label('View URL')
+                            ->disabled()
+                            ->url()
+                            ->openUrlInNewTab(),
+                        Forms\Components\TextInput::make('filename')
+                            ->disabled(),
+                        Forms\Components\TextInput::make('course_id')
+                            ->disabled(),
+                        Forms\Components\TextInput::make('section_id')
+                            ->disabled(),
+                        Forms\Components\TextInput::make('cmid')
+                            ->label('Course Module ID')
+                            ->disabled(),
+                    ])
+                    ->columns(2),
             ]);
     }
 
