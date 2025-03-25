@@ -23,17 +23,37 @@ class H5PResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\TextInput::make('rating')
-                    ->numeric()
-                    ->minValue(1)
-                    ->maxValue(5)
-                    ->label('Rating (1-5)'),
-                Forms\Components\Textarea::make('feedback')
-                    ->maxLength(65535),
-                Forms\Components\Textarea::make('gpt_response')
-                    ->label('GPT Response')
-                    ->disabled()
-                    ->columnSpanFull(),
+                Forms\Components\Section::make('Curriculum Information')
+                    ->schema([
+                        Forms\Components\TextInput::make('curriculum.title')
+                            ->label('Lesson Title')
+                            ->disabled(),
+                        Forms\Components\TextInput::make('curriculum.unit')
+                            ->label('Unit')
+                            ->disabled(),
+                        Forms\Components\TextInput::make('curriculum.lesson')
+                            ->label('Lesson Number')
+                            ->disabled(),
+                    ])->columns(3),
+                
+                Forms\Components\Section::make('Feedback')
+                    ->schema([
+                        Forms\Components\TextInput::make('rating')
+                            ->numeric()
+                            ->minValue(1)
+                            ->maxValue(5)
+                            ->label('Rating (1-5)'),
+                        Forms\Components\Textarea::make('feedback')
+                            ->maxLength(65535),
+                    ]),
+
+                Forms\Components\Section::make('GPT Response')
+                    ->schema([
+                        Forms\Components\Textarea::make('gpt_response')
+                            ->label('GPT Response')
+                            ->disabled()
+                            ->columnSpanFull(),
+                    ]),
             ]);
     }
 
@@ -43,16 +63,6 @@ class H5PResource extends Resource
             ->columns([
                 TextColumn::make('curriculum.title')
                     ->label('Lesson Title')
-                    ->searchable()
-                    ->sortable(),
-                TextColumn::make('unit')
-                    ->label('Unit')
-                    ->formatStateUsing(fn ($record) => $record->curriculum?->unit ?? '-')
-                    ->searchable()
-                    ->sortable(),
-                TextColumn::make('lesson')
-                    ->label('Lesson')
-                    ->formatStateUsing(fn ($record) => $record->curriculum?->lesson ?? '-')
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('rating')
@@ -96,7 +106,6 @@ class H5PResource extends Resource
     {
         return [
             'index' => Pages\ListH5Ps::route('/'),
-            'create' => Pages\CreateH5P::route('/create'),
             'edit' => Pages\EditH5P::route('/{record}/edit'),
             'view' => Pages\ViewH5P::route('/{record}'),
         ];
