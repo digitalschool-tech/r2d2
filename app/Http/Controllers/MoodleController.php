@@ -101,7 +101,7 @@ class MoodleController extends Controller
                 'cmid' => $uploadResponse['cmid'],
             ]);
 
-            CreateNewMissionAction::handle($content, $uploadResponse['viewdirecturl'], $uploadResponse['cmid'], $studentId);
+            // CreateNewMissionAction::handle($content, $uploadResponse['viewdirecturl'], $uploadResponse['cmid'], $studentId);
             return response()->json([
                 'message' => 'H5P file generated and uploaded successfully.',
                 'upload_response' => $uploadResponse
