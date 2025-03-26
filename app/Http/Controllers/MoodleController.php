@@ -12,6 +12,7 @@ use Symfony\Component\HttpFoundation\File\Exception\FileNotFoundException;
 use ZipArchive;
 use App\Actions\CreateNewMissionAction;
 use App\Models\H5P;
+use GuzzleHttp\Client;
 
 class MoodleController extends Controller
 {
@@ -126,7 +127,7 @@ class MoodleController extends Controller
 
         $curriculumData = (!$curriculumData) ? "Lesson: " . $lesson . " Unit: " . $unit : $curriculumData->content;
 
-        // Generate content from GPT
+        // Generate content from deepseek-r1 model
         return $this->generateContentFromGPT($curriculumData);
     }
 
@@ -258,37 +259,108 @@ class MoodleController extends Controller
     }
 
     /**
-     * Generate content using GPT.
+     * Generate content using deepseek-r1 model.
      */
-    public function generateContentFromGPT(string $prompt)
+    public function generateContentFromGPT(string $prompt, string $curriculum = '', string $lessonTitle = '')
     {
-        $gptPrompt = str_replace("%theme%", $prompt, $this->getGptPrompt());
-        $json = GPTAction::handle($gptPrompt);
+        $client = new \GuzzleHttp\Client();
+        
+        $deepseekPrompt = "You are an expert quiz generator for students aged 8–18. Based on the following instructor-facing lesson, generate a quiz in **JSON format only**.
+ 
+---
+ 
+**Instructions:**
+ 
+- Extract concepts and skills students are expected to understand from the lesson content.
+- The lesson is written for instructors, but you should infer what students are learning from the activities and examples.
+- Only use information that is explicitly stated or clearly and directly implied in the lesson content.
+- Do not generate questions about topics that are not covered in the lesson.
+- Avoid adding new examples or general programming knowledge not present in the lesson. The quiz must strictly reflect what students learned in this specific lesson.
+- If the lesson does not mention a concept, do not assume it is known or generate a question about it.
+- **You must generate exactly 10 questions in total**:
+  - **7 multiple-choice questions** (type: `\"multiple_choice\"`)
+  - **3 true/false questions** (type: `\"true_false\"`)
+  - Do **not** include more or fewer than 10 questions.
+ 
+---
+ 
+**Quiz Structure:**
+ 
+- Total questions: **10**
+  - 7 multiple-choice questions:
+    - Each must have exactly 4 options
+    - Only one correct answer
+    - Label answers using `\"answers\"` as a list of strings
+    - `\"correct\"` must be the **index (0–3)** of the correct answer
+  - 3 true/false questions:
+    - `\"answers\"` should be: `[\"True\", \"False\"]`
+    - `\"correct\"` must be the **index** of the correct answer (0 for True, 1 for False)
+ 
+---
+ 
+**⚠️ JSON Format Example — for structure only, do not reuse the content:**
+ 
+```json
+[
+  {
+    \"question\": \"Question 1 goes here\",
+    \"answers\": [
+      \"Option A\",
+      \"Option B\",
+      \"Option C\",
+      \"Option D\"
+    ],
+    \"correct\": 1,
+    \"subContentId\": \"question-1\"
+  },
+  {
+    \"question\": \"Question 2 goes here\",
+    \"answers\": [
+      \"True\",
+      \"False\"
+    ],
+    \"correct\": 0,
+    \"subContentId\": \"question-2\"
+  }
+]
+```
+ 
+**Context:** 
+ 
+All questions must be generated **only from the provided lesson/module content**. Do not invent or assume anything beyond it. Here is the lesson content:
 
-        return json_decode($json, true);
-    }
+{$prompt}";
 
-    /**
-     * Get the GPT prompt template.
-     */
-    private function getGptPrompt(): string
-    {
-        return '
-            Generate a JSON array with the following structure:
-            {
-                "question": "What is a gravity well?",
-                "answers": [
-                    "A region of space where the gravitational pull is so strong that objects are drawn toward it",
-                    "A tunnel through space that allows for faster-than-light travel",
-                    "A source of magnetic energy in space",
-                    "A point in space where gravity is absent"
-                ],
-                "correct": 0,
-                "subContentId": "question-1"
-            }
+        // Log the complete prompt
+        Log::info('Deepseek Prompt:', [
+            'prompt' => $deepseekPrompt,
+            'curriculum' => $curriculum,
+            'lessonTitle' => $lessonTitle
+        ]);
+        
+        try {
+            $response = $client->post('178.132.223.50:11434/api/generate', [
+                'json' => [
+                    'model' => 'deepseek-r1:8b',
+                    'prompt' => $deepseekPrompt
+                ]
+            ]);
 
-            Using this structure, create 5 questions based on the following lesson data: "%theme%". Each question should contain four options, and the correct answer should be specified by its index in the correct field. The response should only return the JSON array without any additional text or explanations.
-        ';
+            $result = json_decode($response->getBody()->getContents(), true);
+            
+            // Log the API response
+            Log::info('Deepseek Response:', [
+                'response' => $result
+            ]);
+            
+            return json_decode($result['response'] ?? '[]', true);
+        } catch (\Exception $e) {
+            Log::error('Deepseek API error:', [
+                'error' => $e->getMessage(),
+                'prompt' => $deepseekPrompt
+            ]);
+            throw $e;
+        }
     }
 
     /**
