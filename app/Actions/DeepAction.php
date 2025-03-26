@@ -16,7 +16,7 @@ class DeepAction
      * @return string The content from the AI response.
      * @throws \Exception If the API call fails or does not return expected results.
      */
-    public static function handle(string $prompt): string
+    public static function handle(string $prompt)
     {
         try {
             $response = HTTP::post('178.132.223.50:11434/api/generate', [
