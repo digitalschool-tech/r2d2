@@ -33,7 +33,7 @@ class DeepAction
                 'response' => $result
             ]);
             
-            return json_decode($result['response'] ?? '[]', true);
+            return $result['response'] ?? '[]';
         } catch (\Exception $e) {
             Log::error('Deepseek API error:', [
                 'error' => $e->getMessage(),
