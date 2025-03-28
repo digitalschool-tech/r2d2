@@ -15,7 +15,8 @@ class CustomCors
     {
         $allowedOrigin = 'https://staging-app.digitalschool.tech';
         $incomingOrigin = $request->headers->get('Origin');
-        $stagingIp = '138.201.173.118';
+        // $stagingIp = '138.201.173.118';
+        $stagingIp = '46.99.33.53';
 
         Log::info('CORS Check', [
             'incoming_origin' => $incomingOrigin,
