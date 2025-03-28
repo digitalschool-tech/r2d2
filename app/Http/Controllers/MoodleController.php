@@ -286,13 +286,13 @@ class MoodleController extends Controller
                     
                     // Extract content within triple backticks
                     preg_match('/```(.*?)```/s', $responseContent, $matches);
-                    
+                    Log::error('Deepseek Response:', ['response' => $responseContent, 'matches' => $matches]);
                     $content = '';
                     if (isset($matches[1])) {
                         // Clean up the response by removing backslashes, newlines, and special characters
                         $content = preg_replace('/\\n|\\r|\\t|\\\\/', '', $matches[1]);
                     }
-                    
+                    Log::error('Deepseek Content Clean:', ['content' => $content]);
                     return $content;
                 }
             }
