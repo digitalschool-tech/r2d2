@@ -96,7 +96,7 @@ class MoodleController extends Controller
                 'section_id' => $sectionId,
                 'prompt' => $prompt,
                 'filename' => $filename,
-                'gpt_response' => json_encode($content["choices"]) ?? null,
+                'gpt_response' => json_encode(json_decode($content, true)["choices"] ?? null),
                 'view_url' => $uploadResponse['viewdirecturl'] ?? "",
                 'cmid' => $uploadResponse['cmid'] ?? 0,
             ]);
