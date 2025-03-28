@@ -263,118 +263,52 @@ class MoodleController extends Controller
      */
     public function generateContentFromGPT(string $prompt, string $curriculum = '', string $lessonTitle = '')
     {
-        $client = new \GuzzleHttp\Client();
-        
-        $deepseekPrompt = "Create exactly 10 questions about this content. For each question:
-1. Write 'QUESTION:' then your question
-2. Write 'ANSWERS:' then list 4 answers, one per line
-3. Put [CORRECT] in front of the right answer
+        $deepseekPrompt = "You are an expert quiz generator for students aged 8–18. Based on the following instructor-facing lesson, generate a quiz in **JSON format only**.\n \n---\n \n**Instructions:**\n \n- Extract concepts and skills students are expected to understand from the lesson content.\n- The lesson is written for instructors, but you should infer what students are learning from the activities and examples.\n- Only use information that is explicitly stated or clearly and directly implied in the lesson content.\n- Do not generate questions about topics that are not covered in the lesson.\n- Avoid adding new examples or general programming knowledge not present in the lesson. The quiz must strictly reflect what students learned in this specific lesson.\n- If the lesson does not mention a concept, do not assume it is known or generate a question about it.\n- **You must generate exactly 10 questions in total**:\n  - **7 multiple-choice questions** (type: \"multiple_choice\")\n  - **3 true/false questions** (type: \"true_false\")\n  - Do **not** include more or fewer than 10 questions.\n \n---\n \n**Quiz Structure:**\n \n- Total questions: **10**\n  - 7 multiple-choice questions:\n    - Each must have exactly 4 options\n    - Only one correct answer\n    - Label answers using \"answers\" as a list of strings\n    - \"correct\" must be the **index (0–3)** of the correct answer\n  - 3 true/false questions:\n    - \"answers\" should be: [\"True\", \"False\"]\n    - \"correct\" must be the **index** of the correct answer (0 for True, 1 for False)\n \n---\n \n**⚠️ JSON Format Example — for structure only, do not reuse the content:**\n \n[\n  {\n    \"question\": \"Question 1 goes here\",\n    \"answers\": [\n      \"Option A\",\n      \"Option B\",\n      \"Option C\",\n      \"Option D\"\n    ],\n    \"correct\": 1,\n    \"subContentId\": \"question-1\"\n  },\n  {\n    \"question\": \"Question 2 goes here\",\n    \"answers\": [\n      \"True\",\n      \"False\"\n    ],\n    \"correct\": 0,\n    \"subContentId\": \"question-2\"\n  }\n]\n \n**Context:**  \n\nAll questions must be generated **only from the provided lesson/module content**. Do not invent or assume anything beyond it. Here is the lesson/module content:\n\n{$prompt}";
 
-Example:
-QUESTION: What is the capital of France?
-ANSWERS:
-[CORRECT] Paris
-London
-Berlin
-Madrid
-
-Content:
-{$prompt}";
-
-        // Log the complete prompt
+        // Log the prompt information
         Log::error('Deepseek Prompt:', [
             'prompt' => $deepseekPrompt,
-            'prompt' => $prompt,
             'curriculum' => $curriculum,
             'lessonTitle' => $lessonTitle
         ]);
         
         try {
-            $response = $client->post('178.132.223.50:11434/api/generate', [
-                'json' => [
-                    'model' => 'deepseek-r1:8b',
-                    'prompt' => $deepseekPrompt,
-                    'stream' => false
-                ]
+            $response = Http::timeout(60)->post('178.132.223.50:11434/api/generate', [
+                'model' => 'deepseek-r1:8b',
+                'prompt' => $deepseekPrompt,
+                'stream' => false
             ]);
             
-            $responseContent = $response->getBody()->getContents();
-            $result = json_decode($responseContent, true);
-            
-            if (!isset($result['response'])) {
-                Log::error('Invalid API response structure');
-                return [];
-            }
-
-            $content = $result['response'];
-            $questions = [];
-            
-            // Split content into question blocks
-            $blocks = preg_split('/QUESTION:/i', $content, -1, PREG_SPLIT_NO_EMPTY);
-            
-            foreach ($blocks as $index => $block) {
-                if ($index >= 10) break;
-                
-                // Clean up the block
-                $block = trim($block);
-                
-                // Split into question and answers
-                $parts = preg_split('/ANSWERS:/i', $block, 2);
-                if (count($parts) !== 2) continue;
-                
-                $questionText = trim($parts[0]);
-                $answersText = trim($parts[1]);
-                
-                // Get answers, one per line
-                $answers = [];
-                $correct = 0;
-                
-                $lines = preg_split('/\r?\n/', $answersText);
-                foreach ($lines as $i => $line) {
-                    $line = trim($line);
-                    if (empty($line)) continue;
-                    if ($i >= 4) break; // Only take first 4 answers
+            if ($response->successful()) {
+                $responseData = $response->json();
+                if (isset($responseData['response'])) {
+                    $responseContent = $responseData['response'];
                     
-                    // Check if this is the correct answer
-                    if (preg_match('/\[CORRECT\]\s*(.+)/', $line, $matches)) {
-                        $correct = count($answers);
-                        $line = trim($matches[1]);
+                    // Extract content within triple backticks
+                    preg_match('/```(.*?)```/s', $responseContent, $matches);
+                    
+                    $content = '';
+                    if (isset($matches[1])) {
+                        // Clean up the response by removing backslashes, newlines, and special characters
+                        $content = preg_replace('/\\n|\\r|\\t|\\\\/', '', $matches[1]);
                     }
                     
-                    $answers[] = $line;
+                    return $content;
                 }
-                
-                // Ensure we have exactly 4 answers
-                while (count($answers) < 4) {
-                    $answers[] = "Option " . chr(65 + count($answers));
-                }
-                
-                $questions[] = [
-                    'question' => $questionText,
-                    'answers' => array_slice($answers, 0, 4), // Ensure exactly 4 answers
-                    'correct' => $correct,
-                    'subContentId' => 'question-' . ($index + 1)
-                ];
             }
             
-            // Pad with default questions if needed
-            while (count($questions) < 10) {
-                $index = count($questions);
-                $questions[] = [
-                    'question' => 'Question ' . ($index + 1),
-                    'answers' => ['Option A', 'Option B', 'Option C', 'Option D'],
-                    'correct' => 0,
-                    'subContentId' => 'question-' . ($index + 1)
-                ];
-            }
-            Log::error('Generated questions:', ['questions' => $questions], ['blocks' => $blocks]);
-            return json_encode($questions);
-        } catch (\Exception $e) {
             Log::error('Deepseek API error:', [
-                'error' => $e->getMessage(),
-                'prompt' => $deepseekPrompt
+                'status' => $response->status(),
+                'response' => $response->body()
             ]);
-            throw $e;
+            
+            return '';
+        } catch (\Exception $e) {
+            Log::error('Deepseek API exception:', [
+                'message' => $e->getMessage()
+            ]);
+            
+            return '';
         }
     }
 
