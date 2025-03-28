@@ -98,7 +98,7 @@ class MoodleController extends Controller
                 'filename' => $filename,
                 'gpt_response' => $content,
                 'view_url' => $uploadResponse['viewdirecturl'] ?? "",
-                'cmid' => $uploadResponse['cmid'] ?? "",
+                'cmid' => $uploadResponse['cmid'] ?? 0,
             ]);
 
             // CreateNewMissionAction::handle($content, $uploadResponse['viewdirecturl'], $uploadResponse['cmid'], $studentId);
