@@ -265,28 +265,29 @@ class MoodleController extends Controller
     {
         $client = new \GuzzleHttp\Client();
         
-        $deepseekPrompt = "You are an expert quiz generator for students aged 8–18. Generate a quiz based on the following lesson content. Return ONLY valid JSON, with no other text or explanation.
+        $deepseekPrompt = "Return ONLY a valid JSON array of exactly 10 quiz questions. NO explanation text. NO thinking process.
 
-Rules for quiz generation:
-- Generate exactly 10 questions total:
-  - 7 multiple-choice questions with exactly 4 options each
-  - 3 true/false questions
-- Only use information explicitly stated or directly implied in the lesson
-- Do not add content not covered in the lesson
-- For multiple-choice: correct must be index 0-3
-- For true/false: answers must be [\"True\", \"False\"] with correct being 0 or 1
-
-Required JSON structure:
+STRICT FORMAT:
 [
   {
-    \"question\": \"Question text\",
-    \"answers\": [\"Option A\", \"Option B\", \"Option C\", \"Option D\"],
+    \"question\": \"Question text here\",
+    \"answers\": [\"A\", \"B\", \"C\", \"D\"],
     \"correct\": 0,
     \"subContentId\": \"question-1\"
   }
 ]
 
-Lesson content:
+RULES:
+1. EXACTLY 10 questions total
+2. First 7 questions: multiple-choice with EXACTLY 4 options
+3. Last 3 questions: true/false with EXACTLY [\"True\", \"False\"] as options
+4. Each question MUST have these fields:
+   - question (string)
+   - answers (array)
+   - correct (number, 0-3 for multiple choice, 0-1 for true/false)
+   - subContentId (string, format: \"question-N\" where N is 1-10)
+5. Generate questions from this content:
+
 {$prompt}";
 
         // Log the complete prompt
@@ -309,15 +310,86 @@ Lesson content:
             $responseContent = $response->getBody()->getContents();
             $result = json_decode($responseContent, true);
             
-            if (isset($result['response'])) {
-                $quiz = json_decode($result['response'], true);
+            if (!isset($result['response'])) {
+                Log::error('Invalid API response structure');
+                return [];
+            }
+
+            $content = $result['response'];
+            $jsonContent = null;
+
+            // Method 1: Try to find JSON between ```json markers
+            if (preg_match('/```json\s*(\[[\s\S]*?\])\s*```/', $content, $matches)) {
+                $jsonContent = $matches[1];
+            }
+            // Method 2: Try to find any array between square brackets
+            elseif (preg_match('/\[\s*{\s*"question"[\s\S]*?\]\s*$/', $content, $matches)) {
+                $jsonContent = $matches[0];
+            }
+            // Method 3: Try to find the first occurrence of [ to the last occurrence of ]
+            elseif (($start = strpos($content, '[')) !== false && ($end = strrpos($content, ']')) !== false) {
+                $jsonContent = substr($content, $start, $end - $start + 1);
+            }
+
+            if ($jsonContent) {
+                // Clean up common JSON issues
+                $jsonContent = preg_replace('/,\s*}/', '}', $jsonContent); // Remove trailing commas in objects
+                $jsonContent = preg_replace('/,\s*]/', ']', $jsonContent); // Remove trailing commas in arrays
+                $jsonContent = preg_replace('/"([^"]+)"\s*:\s*([^"{\[\d][^,}\]]+)/', '"$1": "$2"', $jsonContent); // Quote unquoted string values
+                
+                $quiz = json_decode($jsonContent, true);
+                
                 if (json_last_error() === JSON_ERROR_NONE && is_array($quiz)) {
+                    // Validate quiz structure
+                    if (count($quiz) !== 10) {
+                        Log::error('Invalid quiz: must have exactly 10 questions');
+                        return [];
+                    }
+
+                    foreach ($quiz as $index => $question) {
+                        // Check required fields
+                        if (!isset($question['question'], $question['answers'], $question['correct'], $question['subContentId'])) {
+                            Log::error('Invalid quiz: missing required fields', ['question' => $index + 1]);
+                            return [];
+                        }
+
+                        // First 7 questions must be multiple choice
+                        if ($index < 7) {
+                            if (count($question['answers']) !== 4) {
+                                Log::error('Invalid quiz: multiple choice must have 4 options', ['question' => $index + 1]);
+                                return [];
+                            }
+                            if (!is_numeric($question['correct']) || $question['correct'] < 0 || $question['correct'] > 3) {
+                                Log::error('Invalid quiz: multiple choice correct must be 0-3', ['question' => $index + 1]);
+                                return [];
+                            }
+                        }
+                        // Last 3 questions must be true/false
+                        else {
+                            if (!in_array($question['answers'], [['True', 'False']], true)) {
+                                Log::error('Invalid quiz: true/false must have exactly ["True", "False"]', ['question' => $index + 1]);
+                                return [];
+                            }
+                            if (!is_numeric($question['correct']) || $question['correct'] < 0 || $question['correct'] > 1) {
+                                Log::error('Invalid quiz: true/false correct must be 0-1', ['question' => $index + 1]);
+                                return [];
+                            }
+                        }
+
+                        // Validate subContentId format
+                        if ($question['subContentId'] !== "question-" . ($index + 1)) {
+                            Log::error('Invalid quiz: incorrect subContentId format', ['question' => $index + 1]);
+                            return [];
+                        }
+                    }
+                    
                     return $quiz;
                 }
             }
             
             Log::error('Failed to parse quiz content:', [
-                'content' => $result['response'] ?? null,
+                'content' => $content,
+                'extracted_json' => $jsonContent ?? 'none',
                 'json_error' => json_last_error_msg()
             ]);
             return [];
