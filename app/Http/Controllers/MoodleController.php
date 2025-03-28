@@ -342,7 +342,8 @@ All questions must be generated **only from the provided lesson/module content**
             $response = $client->post('178.132.223.50:11434/api/generate', [
                 'json' => [
                     'model' => 'deepseek-r1:8b',
-                    'prompt' => $deepseekPrompt
+                    'prompt' => $deepseekPrompt,
+                    'stream' => false
                 ]
             ]);
 
