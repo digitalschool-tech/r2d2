@@ -332,10 +332,23 @@ RULES:
             }
 
             if ($jsonContent) {
+                // Remove any "think" or other text before JSON
+                $jsonContent = preg_replace('/<think>.*?<\/think>/s', '', $jsonContent);
+                
                 // Clean up common JSON issues
-                $jsonContent = preg_replace('/,\s*}/', '}', $jsonContent); // Remove trailing commas in objects
-                $jsonContent = preg_replace('/,\s*]/', ']', $jsonContent); // Remove trailing commas in arrays
-                $jsonContent = preg_replace('/"([^"]+)"\s*:\s*([^"{\[\d][^,}\]]+)/', '"$1": "$2"', $jsonContent); // Quote unquoted string values
+                $jsonContent = preg_replace('/\s+/', ' ', $jsonContent); // Normalize whitespace
+                $jsonContent = preg_replace('/,\s*([}\]])/m', '$1', $jsonContent); // Remove trailing commas
+                $jsonContent = preg_replace('/"\s*,\s*"/', '","', $jsonContent); // Fix spacing between strings
+                $jsonContent = preg_replace('/"(\s*):(\s*)"/', '"$1: "', $jsonContent); // Fix spacing around colons
+                $jsonContent = preg_replace('/([{\[,])\s*"(\s+)"/', '$1""', $jsonContent); // Remove whitespace-only strings
+                $jsonContent = preg_replace('/"\s*\[\s*"/', '":[', $jsonContent); // Fix missing colons before arrays
+                
+                // Fix escaped quotes and add missing quotes
+                $jsonContent = str_replace('\"', '"', $jsonContent); // Remove escaped quotes
+                $jsonContent = preg_replace('/"([^"]+)"\s*:\s*([^"{[\d][^,}\]]+)/', '"$1":"$2"', $jsonContent); // Quote unquoted values
+                
+                // Remove any extra whitespace around the JSON
+                $jsonContent = trim($jsonContent);
                 
                 $quiz = json_decode($jsonContent, true);
                 
@@ -355,7 +368,7 @@ RULES:
 
                         // First 7 questions must be multiple choice
                         if ($index < 7) {
-                            if (count($question['answers']) !== 4) {
+                            if (!is_array($question['answers']) || count($question['answers']) !== 4) {
                                 Log::error('Invalid quiz: multiple choice must have 4 options', ['question' => $index + 1]);
                                 return [];
                             }
@@ -366,7 +379,7 @@ RULES:
                         }
                         // Last 3 questions must be true/false
                         else {
-                            if (!in_array($question['answers'], [['True', 'False']], true)) {
+                            if (!is_array($question['answers']) || !in_array($question['answers'], [['True', 'False']], true)) {
                                 Log::error('Invalid quiz: true/false must have exactly ["True", "False"]', ['question' => $index + 1]);
                                 return [];
                             }
@@ -385,13 +398,15 @@ RULES:
                     
                     return $quiz;
                 }
+                
+                Log::error('Failed to parse quiz content:', [
+                    'content' => $content,
+                    'extracted_json' => $jsonContent,
+                    'json_error' => json_last_error_msg(),
+                    'last_json_error' => json_last_error()
+                ]);
             }
             
-            Log::error('Failed to parse quiz content:', [
-                'content' => $content,
-                'extracted_json' => $jsonContent ?? 'none',
-                'json_error' => json_last_error_msg()
-            ]);
             return [];
         } catch (\Exception $e) {
             Log::error('Deepseek API error:', [
