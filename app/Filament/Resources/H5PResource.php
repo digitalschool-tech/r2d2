@@ -96,9 +96,19 @@ class H5PResource extends Resource
 
                 Forms\Components\Section::make('H5P Details')
                     ->schema([
-                        Forms\Components\Textarea::make('gpt_response')
-                            ->label('GPT Response')
-                            ->disabled()
+                        Forms\Components\View::make('filament.resources.h5p.gpt-response')
+                            ->label('Quiz Questions')
+                            ->afterStateHydrated(function ($component, $state, $record) {
+                                if (!$record->gpt_response) return;
+                                
+                                try {
+                                    $questions = json_decode($record->gpt_response, true);
+                                    $component->state($questions);
+                                } catch (\Exception $e) {
+                                    // Handle invalid JSON
+                                    $component->state(null);
+                                }
+                            })
                             ->columnSpanFull(),
                         Forms\Components\TextInput::make('view_url')
                             ->label('View URL')
@@ -172,4 +182,4 @@ class H5PResource extends Resource
     {
         return parent::getEloquentQuery()->with(['curriculum']);
     }
-} 
+}
