@@ -265,29 +265,20 @@ class MoodleController extends Controller
     {
         $client = new \GuzzleHttp\Client();
         
-        $deepseekPrompt = "Return ONLY a valid JSON array of exactly 10 quiz questions. NO explanation text. NO thinking process.
+        $deepseekPrompt = "Create exactly 10 questions about this content. For each question:
+1. Write 'QUESTION:' then your question
+2. Write 'ANSWERS:' then list 4 answers, one per line
+3. Put [CORRECT] in front of the right answer
 
-STRICT FORMAT:
-[
-  {
-    \"question\": \"Question text here\",
-    \"answers\": [\"A\", \"B\", \"C\", \"D\"],
-    \"correct\": 0,
-    \"subContentId\": \"question-1\"
-  }
-]
+Example:
+QUESTION: What is the capital of France?
+ANSWERS:
+[CORRECT] Paris
+London
+Berlin
+Madrid
 
-RULES:
-1. EXACTLY 10 questions total
-2. First 7 questions: multiple-choice with EXACTLY 4 options
-3. Last 3 questions: true/false with EXACTLY [\"True\", \"False\"] as options
-4. Each question MUST have these fields:
-   - question (string)
-   - answers (array)
-   - correct (number, 0-3 for multiple choice, 0-1 for true/false)
-   - subContentId (string, format: \"question-N\" where N is 1-10)
-5. Generate questions from this content:
-
+Content:
 {$prompt}";
 
         // Log the complete prompt
@@ -316,98 +307,68 @@ RULES:
             }
 
             $content = $result['response'];
-            $jsonContent = null;
-
-            // Method 1: Try to find JSON between ```json markers
-            if (preg_match('/```json\s*(\[[\s\S]*?\])\s*```/', $content, $matches)) {
-                $jsonContent = $matches[1];
-            }
-            // Method 2: Try to find any array between square brackets
-            elseif (preg_match('/\[\s*{\s*"question"[\s\S]*?\]\s*$/', $content, $matches)) {
-                $jsonContent = $matches[0];
-            }
-            // Method 3: Try to find the first occurrence of [ to the last occurrence of ]
-            elseif (($start = strpos($content, '[')) !== false && ($end = strrpos($content, ']')) !== false) {
-                $jsonContent = substr($content, $start, $end - $start + 1);
-            }
-
-            if ($jsonContent) {
-                // Remove any "think" or other text before JSON
-                $jsonContent = preg_replace('/<think>.*?<\/think>/s', '', $jsonContent);
+            $questions = [];
+            
+            // Split content into question blocks
+            $blocks = preg_split('/QUESTION:/i', $content, -1, PREG_SPLIT_NO_EMPTY);
+            
+            foreach ($blocks as $index => $block) {
+                if ($index >= 10) break;
                 
-                // Clean up common JSON issues
-                $jsonContent = preg_replace('/\s+/', ' ', $jsonContent); // Normalize whitespace
-                $jsonContent = preg_replace('/,\s*([}\]])/m', '$1', $jsonContent); // Remove trailing commas
-                $jsonContent = preg_replace('/"\s*,\s*"/', '","', $jsonContent); // Fix spacing between strings
-                $jsonContent = preg_replace('/"(\s*):(\s*)"/', '"$1: "', $jsonContent); // Fix spacing around colons
-                $jsonContent = preg_replace('/([{\[,])\s*"(\s+)"/', '$1""', $jsonContent); // Remove whitespace-only strings
-                $jsonContent = preg_replace('/"\s*\[\s*"/', '":[', $jsonContent); // Fix missing colons before arrays
+                // Clean up the block
+                $block = trim($block);
                 
-                // Fix escaped quotes and add missing quotes
-                $jsonContent = str_replace('\"', '"', $jsonContent); // Remove escaped quotes
-                $jsonContent = preg_replace('/"([^"]+)"\s*:\s*([^"{[\d][^,}\]]+)/', '"$1":"$2"', $jsonContent); // Quote unquoted values
+                // Split into question and answers
+                $parts = preg_split('/ANSWERS:/i', $block, 2);
+                if (count($parts) !== 2) continue;
                 
-                // Remove any extra whitespace around the JSON
-                $jsonContent = trim($jsonContent);
+                $questionText = trim($parts[0]);
+                $answersText = trim($parts[1]);
                 
-                $quiz = json_decode($jsonContent, true);
+                // Get answers, one per line
+                $answers = [];
+                $correct = 0;
                 
-                if (json_last_error() === JSON_ERROR_NONE && is_array($quiz)) {
-                    // Validate quiz structure
-                    if (count($quiz) !== 10) {
-                        Log::error('Invalid quiz: must have exactly 10 questions');
-                        return [];
-                    }
-
-                    foreach ($quiz as $index => $question) {
-                        // Check required fields
-                        if (!isset($question['question'], $question['answers'], $question['correct'], $question['subContentId'])) {
-                            Log::error('Invalid quiz: missing required fields', ['question' => $index + 1]);
-                            return [];
-                        }
-
-                        // First 7 questions must be multiple choice
-                        if ($index < 7) {
-                            if (!is_array($question['answers']) || count($question['answers']) !== 4) {
-                                Log::error('Invalid quiz: multiple choice must have 4 options', ['question' => $index + 1]);
-                                return [];
-                            }
-                            if (!is_numeric($question['correct']) || $question['correct'] < 0 || $question['correct'] > 3) {
-                                Log::error('Invalid quiz: multiple choice correct must be 0-3', ['question' => $index + 1]);
-                                return [];
-                            }
-                        }
-                        // Last 3 questions must be true/false
-                        else {
-                            if (!is_array($question['answers']) || !in_array($question['answers'], [['True', 'False']], true)) {
-                                Log::error('Invalid quiz: true/false must have exactly ["True", "False"]', ['question' => $index + 1]);
-                                return [];
-                            }
-                            if (!is_numeric($question['correct']) || $question['correct'] < 0 || $question['correct'] > 1) {
-                                Log::error('Invalid quiz: true/false correct must be 0-1', ['question' => $index + 1]);
-                                return [];
-                            }
-                        }
-
-                        // Validate subContentId format
-                        if ($question['subContentId'] !== "question-" . ($index + 1)) {
-                            Log::error('Invalid quiz: incorrect subContentId format', ['question' => $index + 1]);
-                            return [];
-                        }
+                $lines = preg_split('/\r?\n/', $answersText);
+                foreach ($lines as $i => $line) {
+                    $line = trim($line);
+                    if (empty($line)) continue;
+                    if ($i >= 4) break; // Only take first 4 answers
+                    
+                    // Check if this is the correct answer
+                    if (preg_match('/\[CORRECT\]\s*(.+)/', $line, $matches)) {
+                        $correct = count($answers);
+                        $line = trim($matches[1]);
                     }
                     
-                    return $quiz;
+                    $answers[] = $line;
                 }
                 
-                Log::error('Failed to parse quiz content:', [
-                    'content' => $content,
-                    'extracted_json' => $jsonContent,
-                    'json_error' => json_last_error_msg(),
-                    'last_json_error' => json_last_error()
-                ]);
+                // Ensure we have exactly 4 answers
+                while (count($answers) < 4) {
+                    $answers[] = "Option " . chr(65 + count($answers));
+                }
+                
+                $questions[] = [
+                    'question' => $questionText,
+                    'answers' => array_slice($answers, 0, 4), // Ensure exactly 4 answers
+                    'correct' => $correct,
+                    'subContentId' => 'question-' . ($index + 1)
+                ];
             }
             
-            return [];
+            // Pad with default questions if needed
+            while (count($questions) < 10) {
+                $index = count($questions);
+                $questions[] = [
+                    'question' => 'Question ' . ($index + 1),
+                    'answers' => ['Option A', 'Option B', 'Option C', 'Option D'],
+                    'correct' => 0,
+                    'subContentId' => 'question-' . ($index + 1)
+                ];
+            }
+            
+            return $questions;
         } catch (\Exception $e) {
             Log::error('Deepseek API error:', [
                 'error' => $e->getMessage(),
