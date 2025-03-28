@@ -78,7 +78,7 @@ class MoodleController extends Controller
             // $uploadResponse = $this->uploadH5PDirectly($h5pFilePath, $courseId, $sectionId, $content, $studentId);
 
             Log::info('Upload completed successfully', [
-                'response' => $uploadResponse
+                'response' => $uploadResponse ?? ""
             ]);
 
             $prompt = "Generate quiz questions for Unit: {$request->unit}, Lesson: {$request->lesson}";
