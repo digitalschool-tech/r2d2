@@ -57,7 +57,7 @@ class MoodleController extends Controller
             Log::info('Finding curriculum content');
             $gptContent = $this->findCurriculum($unit, $lesson);
             $content = $this->prepareJsonContent($gptContent);
-            Log::error('Content prepared', ['content' => $content, 'gptContent' => $gptContent, 'jsonContent' => json_decode($gptContent)]);
+            Log::error('Content prepared', ['content' => $content, 'gptContent' => $gptContent, 'jsonContent' => json_encode($gptContent)]);
             // Create the H5P file
             Log::info('Creating H5P file');
             $filename = 'h5p_' . uniqid() . '.h5p';
