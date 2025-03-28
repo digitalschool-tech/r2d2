@@ -96,7 +96,7 @@ class MoodleController extends Controller
                 'section_id' => $sectionId,
                 'prompt' => $prompt,
                 'filename' => $filename,
-                'gpt_response' => $content,
+                'gpt_response' => $content->choices ?? null,
                 'view_url' => $uploadResponse['viewdirecturl'] ?? "",
                 'cmid' => $uploadResponse['cmid'] ?? 0,
             ]);
@@ -293,7 +293,7 @@ class MoodleController extends Controller
                         $content = preg_replace('/\\n|\\r|\\t|\\\\/', '', $matches[1]);
                     }
                     Log::error('Deepseek Content Clean:', ['content' => $content]);
-                    return $content;
+                    return json_decode($content, true);
                 }
             }
             
