@@ -55,9 +55,9 @@ class MoodleController extends Controller
 
             // Find the curriculum content
             Log::info('Finding curriculum content');
-            $content = $this->findCurriculum($unit, $lesson);
-            $content = $this->prepareJsonContent($content);
-
+            $gptContent = $this->findCurriculum($unit, $lesson);
+            $content = $this->prepareJsonContent($gptContent);
+            Log::error('Content prepared', ['content' => $content, 'gptContent' => $gptContent, 'jsonContent' => json_decode($gptContent)]);
             // Create the H5P file
             Log::info('Creating H5P file');
             $filename = 'h5p_' . uniqid() . '.h5p';
@@ -96,7 +96,7 @@ class MoodleController extends Controller
                 'section_id' => $sectionId,
                 'prompt' => $prompt,
                 'filename' => $filename,
-                'gpt_response' => json_encode(json_decode($content, true)["choices"] ?? null),
+                'gpt_response' => json_encode($gptContent),
                 'view_url' => $uploadResponse['viewdirecturl'] ?? "",
                 'cmid' => $uploadResponse['cmid'] ?? 0,
             ]);
