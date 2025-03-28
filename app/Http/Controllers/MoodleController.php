@@ -125,7 +125,7 @@ class MoodleController extends Controller
             ->select('title', 'content', 'lesson', 'unit')
             ->first();
 
-        $curriculumData = (!$curriculumData) ? "Lesson: " . $lesson . " Unit: " . $unit : $curriculumData->content;
+        $curriculumData = (!$curriculumData) ? "Lesson: " . $lesson . " Unit: " . $unit : $curriculumData->pdf_content;
 
         // Generate content from deepseek-r1 model
         return $this->generateContentFromGPT($curriculumData);
@@ -347,17 +347,21 @@ All questions must be generated **only from the provided lesson/module content**
                     'stream' => false
                 ]
             ]);
-            Log::error('Deepseek Response:', [
-                'response' => $response->getBody()->getContents()
-            ]);
-            $result = json_decode($response->getBody()->getContents(), true);
             
-            // Log the API response
-            Log::info('Deepseek Response:', [
-                'response' => $result
-            ]);
+            $responseContent = $response->getBody()->getContents();
+            $result = json_decode($responseContent, true);
             
-            return json_decode($result['response'] ?? '[]', true);
+            // Find JSON content between ```json markers
+            if (preg_match('/```json\s*(\[[\s\S]*?\])\s*```/', $result['response'], $matches)) {
+                $jsonContent = $matches[1];
+                $quiz = json_decode($jsonContent, true);
+                if (json_last_error() === JSON_ERROR_NONE && is_array($quiz)) {
+                    return $quiz;
+                }
+            }
+            
+            Log::error('Failed to parse quiz content:', ['content' => $result['response']]);
+            return [];
         } catch (\Exception $e) {
             Log::error('Deepseek API error:', [
                 'error' => $e->getMessage(),
