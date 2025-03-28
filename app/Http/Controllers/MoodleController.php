@@ -346,7 +346,7 @@ All questions must be generated **only from the provided lesson/module content**
                     'stream' => false
                 ]
             ]);
-            Log::info('Deepseek Response:', [
+            Log::error('Deepseek Response:', [
                 'response' => $response->getBody()->getContents()
             ]);
             $result = json_decode($response->getBody()->getContents(), true);
