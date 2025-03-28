@@ -332,8 +332,9 @@ All questions must be generated **only from the provided lesson/module content**
 {$prompt}";
 
         // Log the complete prompt
-        Log::info('Deepseek Prompt:', [
+        Log::error('Deepseek Prompt:', [
             'prompt' => $deepseekPrompt,
+            'prompt' => $prompt,
             'curriculum' => $curriculum,
             'lessonTitle' => $lessonTitle
         ]);
