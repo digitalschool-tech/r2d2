@@ -292,6 +292,7 @@ class MoodleController extends Controller
                         // Clean up the response by removing backslashes, newlines, and special characters
                         $content = preg_replace('/\\n|\\r|\\t|\\\\/', '', $matches[1]);
                     }
+                    Log::error('Deepseek Final:', ['content' => $content, 'jsonContent' => json_decode($content, true)]);
                     return json_decode($content, true);
                 }
             }
