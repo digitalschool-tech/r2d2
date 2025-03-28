@@ -75,7 +75,7 @@ class MoodleController extends Controller
 
             // Upload H5P file to Moodle
             Log::info('Uploading H5P to Moodle');
-            $uploadResponse = $this->uploadH5PDirectly($h5pFilePath, $courseId, $sectionId, $content, $studentId);
+            // $uploadResponse = $this->uploadH5PDirectly($h5pFilePath, $courseId, $sectionId, $content, $studentId);
 
             Log::info('Upload completed successfully', [
                 'response' => $uploadResponse
@@ -97,14 +97,14 @@ class MoodleController extends Controller
                 'prompt' => $prompt,
                 'filename' => $filename,
                 'gpt_response' => $content,
-                'view_url' => $uploadResponse['viewdirecturl'],
-                'cmid' => $uploadResponse['cmid'],
+                'view_url' => $uploadResponse['viewdirecturl'] ?? "",
+                'cmid' => $uploadResponse['cmid'] ?? "",
             ]);
 
             // CreateNewMissionAction::handle($content, $uploadResponse['viewdirecturl'], $uploadResponse['cmid'], $studentId);
             return response()->json([
                 'message' => 'H5P file generated and uploaded successfully.',
-                'upload_response' => $uploadResponse
+                'upload_response' => $uploadResponse ?? ""
             ], 200);
 
         } catch (\Exception $e) {
