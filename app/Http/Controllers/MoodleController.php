@@ -285,7 +285,7 @@ class MoodleController extends Controller
                     $responseContent = $responseData['response'];
                     
                     // Extract content within triple backticks
-                    preg_match('/```(.*?)```/s', $responseContent, $matches);
+                    preg_match('/```json(.*?)```/s', $responseContent, $matches);
                     Log::error('Deepseek Response:', ['response' => $responseContent, 'matches' => $matches]);
                     $content = '';
                     if (isset($matches[1])) {
