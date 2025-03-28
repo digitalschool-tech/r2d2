@@ -368,7 +368,7 @@ Content:
                 ];
             }
             
-            return $questions;
+            return json_encode($questions);
         } catch (\Exception $e) {
             Log::error('Deepseek API error:', [
                 'error' => $e->getMessage(),
