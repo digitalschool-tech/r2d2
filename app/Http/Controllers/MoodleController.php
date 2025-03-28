@@ -122,7 +122,7 @@ class MoodleController extends Controller
     {
         // Fetch curriculum data from the database
         $curriculumData = Curriculum::where('unit', $unit)->where('lesson', $lesson)
-            ->select('title', 'content', 'lesson', 'unit')
+            ->select('title', 'content', 'lesson', 'unit', 'pdf_content')
             ->first();
 
         $curriculumData = (!$curriculumData) ? "Lesson: " . $lesson . " Unit: " . $unit : $curriculumData->pdf_content;
