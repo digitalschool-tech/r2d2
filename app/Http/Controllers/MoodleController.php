@@ -367,7 +367,7 @@ Content:
                     'subContentId' => 'question-' . ($index + 1)
                 ];
             }
-            
+            Log::error('Generated questions:', ['questions' => $questions], ['blocks' => $blocks]);
             return json_encode($questions);
         } catch (\Exception $e) {
             Log::error('Deepseek API error:', [
