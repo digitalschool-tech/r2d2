@@ -265,70 +265,28 @@ class MoodleController extends Controller
     {
         $client = new \GuzzleHttp\Client();
         
-        $deepseekPrompt = "You are an expert quiz generator for students aged 8–18. Based on the following instructor-facing lesson, generate a quiz in **JSON format only**.
- 
----
- 
-**Instructions:**
- 
-- Extract concepts and skills students are expected to understand from the lesson content.
-- The lesson is written for instructors, but you should infer what students are learning from the activities and examples.
-- Only use information that is explicitly stated or clearly and directly implied in the lesson content.
-- Do not generate questions about topics that are not covered in the lesson.
-- Avoid adding new examples or general programming knowledge not present in the lesson. The quiz must strictly reflect what students learned in this specific lesson.
-- If the lesson does not mention a concept, do not assume it is known or generate a question about it.
-- **You must generate exactly 10 questions in total**:
-  - **7 multiple-choice questions** (type: `\"multiple_choice\"`)
-  - **3 true/false questions** (type: `\"true_false\"`)
-  - Do **not** include more or fewer than 10 questions.
- 
----
- 
-**Quiz Structure:**
- 
-- Total questions: **10**
-  - 7 multiple-choice questions:
-    - Each must have exactly 4 options
-    - Only one correct answer
-    - Label answers using `\"answers\"` as a list of strings
-    - `\"correct\"` must be the **index (0–3)** of the correct answer
-  - 3 true/false questions:
-    - `\"answers\"` should be: `[\"True\", \"False\"]`
-    - `\"correct\"` must be the **index** of the correct answer (0 for True, 1 for False)
- 
----
- 
-**⚠️ JSON Format Example — for structure only, do not reuse the content:**
- 
-```json
+        $deepseekPrompt = "You are an expert quiz generator for students aged 8–18. Generate a quiz based on the following lesson content. Return ONLY valid JSON, with no other text or explanation.
+
+Rules for quiz generation:
+- Generate exactly 10 questions total:
+  - 7 multiple-choice questions with exactly 4 options each
+  - 3 true/false questions
+- Only use information explicitly stated or directly implied in the lesson
+- Do not add content not covered in the lesson
+- For multiple-choice: correct must be index 0-3
+- For true/false: answers must be [\"True\", \"False\"] with correct being 0 or 1
+
+Required JSON structure:
 [
   {
-    \"question\": \"Question 1 goes here\",
-    \"answers\": [
-      \"Option A\",
-      \"Option B\",
-      \"Option C\",
-      \"Option D\"
-    ],
-    \"correct\": 1,
-    \"subContentId\": \"question-1\"
-  },
-  {
-    \"question\": \"Question 2 goes here\",
-    \"answers\": [
-      \"True\",
-      \"False\"
-    ],
+    \"question\": \"Question text\",
+    \"answers\": [\"Option A\", \"Option B\", \"Option C\", \"Option D\"],
     \"correct\": 0,
-    \"subContentId\": \"question-2\"
+    \"subContentId\": \"question-1\"
   }
 ]
-```
- 
-**Context:** 
- 
-All questions must be generated **only from the provided lesson/module content**. Do not invent or assume anything beyond it. Here is the lesson content:
 
+Lesson content:
 {$prompt}";
 
         // Log the complete prompt
@@ -351,16 +309,17 @@ All questions must be generated **only from the provided lesson/module content**
             $responseContent = $response->getBody()->getContents();
             $result = json_decode($responseContent, true);
             
-            // Find JSON content between ```json markers
-            if (preg_match('/```json\s*(\[[\s\S]*?\])\s*```/', $result['response'], $matches)) {
-                $jsonContent = $matches[1];
-                $quiz = json_decode($jsonContent, true);
+            if (isset($result['response'])) {
+                $quiz = json_decode($result['response'], true);
                 if (json_last_error() === JSON_ERROR_NONE && is_array($quiz)) {
                     return $quiz;
                 }
             }
             
-            Log::error('Failed to parse quiz content:', ['content' => $result['response']]);
+            Log::error('Failed to parse quiz content:', [
+                'content' => $result['response'] ?? null,
+                'json_error' => json_last_error_msg()
+            ]);
             return [];
         } catch (\Exception $e) {
             Log::error('Deepseek API error:', [
