@@ -32,43 +32,34 @@ class H5PResource extends Resource
                         Forms\Components\TextInput::make('curriculum.title')
                             ->label('Lesson Title')
                             ->disabled()
-                            ->afterStateHydrated(function ($component, $state, $record) {
-                                if ($record) {
-                                    $component->state($record->curriculum?->title ?? 'N/A');
-                                }
-                            }),
+                            ->dehydrated(false)
+                            ->formatStateUsing(fn ($record) => $record?->curriculum?->title ?? 'N/A'),
                         Forms\Components\TextInput::make('curriculum.unit')
                             ->label('Unit')
                             ->disabled()
-                            ->afterStateHydrated(function ($component, $state, $record) {
-                                if ($record) {
-                                    $component->state($record->curriculum?->unit ?? 'N/A');
-                                }
-                            }),
+                            ->dehydrated(false)
+                            ->formatStateUsing(fn ($record) => $record?->curriculum?->unit ?? 'N/A'),
                         Forms\Components\TextInput::make('curriculum.lesson')
                             ->label('Lesson')
                             ->disabled()
-                            ->afterStateHydrated(function ($component, $state, $record) {
-                                $component->state($record->curriculum?->lesson ?? 'N/A');
-                            }),
+                            ->dehydrated(false)
+                            ->formatStateUsing(fn ($record) => $record?->curriculum?->lesson ?? 'N/A'),
                         Forms\Components\TextInput::make('curriculum.file_path')
                             ->label('File Path')
                             ->disabled()
-                            ->afterStateHydrated(function ($component, $state, $record) {
-                                $component->state($record->curriculum?->file_path ?? 'N/A');
-                            })
+                            ->dehydrated(false)
+                            ->formatStateUsing(fn ($record) => $record?->curriculum?->file_path ?? 'N/A')
                             ->suffixAction(
                                 Forms\Components\Actions\Action::make('open')
                                     ->icon('heroicon-m-arrow-top-right-on-square')
-                                    ->url(fn ($record) => $record->curriculum?->file_path ? Storage::url($record->curriculum->file_path) : null, true)
-                                    ->visible(fn ($record) => $record->curriculum?->file_path !== null)
+                                    ->url(fn ($record) => $record?->curriculum?->file_path ? Storage::url($record->curriculum->file_path) : null, true)
+                                    ->visible(fn ($record) => $record?->curriculum?->file_path !== null)
                             ),
                         Forms\Components\Textarea::make('curriculum.pdf_content')
                             ->label('PDF Content')
                             ->disabled()
-                            ->afterStateHydrated(function ($component, $state, $record) {
-                                $component->state($record->curriculum?->pdf_content ?? 'N/A');
-                            })
+                            ->dehydrated(false)
+                            ->formatStateUsing(fn ($record) => $record?->curriculum?->pdf_content ?? 'N/A')
                             ->columnSpanFull(),
                     ])->columns(3),
 
@@ -77,16 +68,14 @@ class H5PResource extends Resource
                         Forms\Components\Textarea::make('curriculum.content')
                             ->label('Content')
                             ->disabled()
-                            ->afterStateHydrated(function ($component, $state, $record) {
-                                $component->state($record->curriculum?->content);
-                            })
+                            ->dehydrated(false)
+                            ->formatStateUsing(fn ($record) => $record?->curriculum?->content ?? 'N/A')
                             ->columnSpanFull(),
                         Forms\Components\Textarea::make('curriculum.prompt')
                             ->label('Curriculum Prompt')
                             ->disabled()
-                            ->afterStateHydrated(function ($component, $state, $record) {
-                                $component->state($record->curriculum?->prompt);
-                            })
+                            ->dehydrated(false)
+                            ->formatStateUsing(fn ($record) => $record?->curriculum?->prompt ?? 'N/A')
                             ->columnSpanFull(),
                     ]),
 
@@ -195,6 +184,7 @@ class H5PResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->with(['curriculum']);
+        return parent::getEloquentQuery()
+            ->with('curriculum');  // Eager load the curriculum relationship
     }
 }
