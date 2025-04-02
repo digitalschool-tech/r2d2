@@ -33,17 +33,17 @@ class H5PResource extends Resource
                             ->label('Lesson Title')
                             ->disabled()
                             ->afterStateHydrated(function ($component, $state, $record) {
-                                if(!$record->curriculum) {
-                                    $component->state('Curriculum not found (ID: ' . $record->curriculum_id . ')');
-                                } else {
-                                    $component->state($record->curriculum->title);
+                                if ($record) {
+                                    $component->state($record->curriculum?->title ?? 'N/A');
                                 }
                             }),
                         Forms\Components\TextInput::make('curriculum.unit')
                             ->label('Unit')
                             ->disabled()
                             ->afterStateHydrated(function ($component, $state, $record) {
-                                $component->state($record->curriculum?->unit ?? 'N/A');
+                                if ($record) {
+                                    $component->state($record->curriculum?->unit ?? 'N/A');
+                                }
                             }),
                         Forms\Components\TextInput::make('curriculum.lesson')
                             ->label('Lesson')
@@ -137,6 +137,14 @@ class H5PResource extends Resource
             ->columns([
                 TextColumn::make('curriculum.title')
                     ->label('Lesson Title')
+                    ->searchable()
+                    ->sortable(),
+                TextColumn::make('curriculum.unit')
+                    ->label('Unit')
+                    ->searchable()
+                    ->sortable(),
+                TextColumn::make('curriculum.lesson')
+                    ->label('Lesson')
                     ->searchable()
                     ->sortable(),
                 TextColumn::make('rating')

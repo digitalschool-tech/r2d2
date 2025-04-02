@@ -8,4 +8,9 @@ use Filament\Resources\Pages\ViewRecord;
 class ViewH5P extends ViewRecord
 {
     protected static string $resource = H5PResource::class;
+
+    protected function getPreloadedFormDataRelationships(): array
+    {
+        return ['curriculum'];
+    }
 } 

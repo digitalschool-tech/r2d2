@@ -31,6 +31,6 @@ class H5P extends Model
 
     public function curriculum(): BelongsTo
     {
-        return $this->belongsTo(Curriculum::class);
+        return $this->belongsTo(Curriculum::class, 'curriculum_id');
     }
 }

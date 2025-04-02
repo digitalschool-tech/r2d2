@@ -16,4 +16,9 @@ class EditH5P extends EditRecord
             Actions\DeleteAction::make(),
         ];
     }
+
+    protected function getPreloadedFormDataRelationships(): array
+    {
+        return ['curriculum'];
+    }
 } 
