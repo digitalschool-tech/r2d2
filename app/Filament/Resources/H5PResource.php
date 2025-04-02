@@ -32,34 +32,29 @@ class H5PResource extends Resource
                         Forms\Components\TextInput::make('curriculum.title')
                             ->label('Lesson Title')
                             ->disabled()
-                            ->dehydrated(false)
-                            ->formatStateUsing(fn ($record) => $record?->curriculum?->title ?? 'N/A'),
+                            ->getStateUsing(fn ($record) => $record->curriculum?->title ?? 'N/A'),
                         Forms\Components\TextInput::make('curriculum.unit')
                             ->label('Unit')
                             ->disabled()
-                            ->dehydrated(false)
-                            ->formatStateUsing(fn ($record) => $record?->curriculum?->unit ?? 'N/A'),
+                            ->getStateUsing(fn ($record) => $record->curriculum?->unit ?? 'N/A'),
                         Forms\Components\TextInput::make('curriculum.lesson')
                             ->label('Lesson')
                             ->disabled()
-                            ->dehydrated(false)
-                            ->formatStateUsing(fn ($record) => $record?->curriculum?->lesson ?? 'N/A'),
+                            ->getStateUsing(fn ($record) => $record->curriculum?->lesson ?? 'N/A'),
                         Forms\Components\TextInput::make('curriculum.file_path')
                             ->label('File Path')
                             ->disabled()
-                            ->dehydrated(false)
-                            ->formatStateUsing(fn ($record) => $record?->curriculum?->file_path ?? 'N/A')
+                            ->getStateUsing(fn ($record) => $record->curriculum?->file_path ?? 'N/A')
                             ->suffixAction(
                                 Forms\Components\Actions\Action::make('open')
                                     ->icon('heroicon-m-arrow-top-right-on-square')
-                                    ->url(fn ($record) => $record?->curriculum?->file_path ? Storage::url($record->curriculum->file_path) : null, true)
-                                    ->visible(fn ($record) => $record?->curriculum?->file_path !== null)
+                                    ->url(fn ($record) => $record->curriculum?->file_path ? Storage::url($record->curriculum->file_path) : null, true)
+                                    ->visible(fn ($record) => $record->curriculum?->file_path !== null)
                             ),
                         Forms\Components\Textarea::make('curriculum.pdf_content')
                             ->label('PDF Content')
                             ->disabled()
-                            ->dehydrated(false)
-                            ->formatStateUsing(fn ($record) => $record?->curriculum?->pdf_content ?? 'N/A')
+                            ->getStateUsing(fn ($record) => $record->curriculum?->pdf_content ?? 'N/A')
                             ->columnSpanFull(),
                     ])->columns(3),
 
@@ -68,14 +63,12 @@ class H5PResource extends Resource
                         Forms\Components\Textarea::make('curriculum.content')
                             ->label('Content')
                             ->disabled()
-                            ->dehydrated(false)
-                            ->formatStateUsing(fn ($record) => $record?->curriculum?->content ?? 'N/A')
+                            ->getStateUsing(fn ($record) => $record->curriculum?->content ?? 'N/A')
                             ->columnSpanFull(),
                         Forms\Components\Textarea::make('curriculum.prompt')
                             ->label('Curriculum Prompt')
                             ->disabled()
-                            ->dehydrated(false)
-                            ->formatStateUsing(fn ($record) => $record?->curriculum?->prompt ?? 'N/A')
+                            ->getStateUsing(fn ($record) => $record->curriculum?->prompt ?? 'N/A')
                             ->columnSpanFull(),
                     ]),
 
