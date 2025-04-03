@@ -33,25 +33,43 @@ class H5PResource extends Resource
                             ->label('Lesson Title')
                             ->disabled()
                             ->afterStateHydrated(function ($component, $state, $record) {
-                                $component->state($record->curriculum?->title ?? 'N/A');
+                                if (is_array($state)) {
+                                    // When viewing (using mutated data)
+                                    $component->state($state['title'] ?? 'N/A');
+                                } else {
+                                    // When accessing directly from relationship
+                                    $component->state($record->curriculum?->title ?? 'N/A');
+                                }
                             }),
                         Forms\Components\TextInput::make('curriculum.unit')
                             ->label('Unit')
                             ->disabled()
                             ->afterStateHydrated(function ($component, $state, $record) {
-                                $component->state($record->curriculum?->unit ?? 'N/A');
+                                if (is_array($state)) {
+                                    $component->state($state['unit'] ?? 'N/A');
+                                } else {
+                                    $component->state($record->curriculum?->unit ?? 'N/A');
+                                }
                             }),
                         Forms\Components\TextInput::make('curriculum.lesson')
                             ->label('Lesson')
                             ->disabled()
                             ->afterStateHydrated(function ($component, $state, $record) {
-                                $component->state($record->curriculum?->lesson ?? 'N/A');
+                                if (is_array($state)) {
+                                    $component->state($state['lesson'] ?? 'N/A');
+                                } else {
+                                    $component->state($record->curriculum?->lesson ?? 'N/A');
+                                }
                             }),
                         Forms\Components\TextInput::make('curriculum.file_path')
                             ->label('File Path')
                             ->disabled()
                             ->afterStateHydrated(function ($component, $state, $record) {
-                                $component->state($record->curriculum?->file_path ?? 'N/A');
+                                if (is_array($state)) {
+                                    $component->state($state['file_path'] ?? 'N/A');
+                                } else {
+                                    $component->state($record->curriculum?->file_path ?? 'N/A');
+                                }
                             })
                             ->suffixAction(
                                 Forms\Components\Actions\Action::make('open')
@@ -63,7 +81,11 @@ class H5PResource extends Resource
                             ->label('PDF Content')
                             ->disabled()
                             ->afterStateHydrated(function ($component, $state, $record) {
-                                $component->state($record->curriculum?->pdf_content ?? 'N/A');
+                                if (is_array($state)) {
+                                    $component->state($state['pdf_content'] ?? 'N/A');
+                                } else {
+                                    $component->state($record->curriculum?->pdf_content ?? 'N/A');
+                                }
                             })
                             ->columnSpanFull(),
                     ])->columns(3),
@@ -74,14 +96,22 @@ class H5PResource extends Resource
                             ->label('Content')
                             ->disabled()
                             ->afterStateHydrated(function ($component, $state, $record) {
-                                $component->state($record->curriculum?->content ?? 'N/A');
+                                if (is_array($state)) {
+                                    $component->state($state['content'] ?? 'N/A');
+                                } else {
+                                    $component->state($record->curriculum?->content ?? 'N/A');
+                                }
                             })
                             ->columnSpanFull(),
                         Forms\Components\Textarea::make('curriculum.prompt')
                             ->label('Curriculum Prompt')
                             ->disabled()
                             ->afterStateHydrated(function ($component, $state, $record) {
-                                $component->state($record->curriculum?->prompt ?? 'N/A');
+                                if (is_array($state)) {
+                                    $component->state($state['prompt'] ?? 'N/A');
+                                } else {
+                                    $component->state($record->curriculum?->prompt ?? 'N/A');
+                                }
                             })
                             ->columnSpanFull(),
                     ]),
