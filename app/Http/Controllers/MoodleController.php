@@ -262,55 +262,122 @@ class MoodleController extends Controller
      * Generate content using deepseek-r1 model.
      */
     public function generateContentFromGPT(string $prompt, string $curriculum = '', string $lessonTitle = '')
-    {
-        $deepseekPrompt = "You are an expert quiz generator for students aged 8–18. Based on the following instructor-facing lesson, generate a quiz in **JSON format only**.\n \n---\n \n**Instructions:**\n \n- Extract concepts and skills students are expected to understand from the lesson content.\n- The lesson is written for instructors, but you should infer what students are learning from the activities and examples.\n- Only use information that is explicitly stated or clearly and directly implied in the lesson content.\n- Do not generate questions about topics that are not covered in the lesson.\n- Avoid adding new examples or general programming knowledge not present in the lesson. The quiz must strictly reflect what students learned in this specific lesson.\n- If the lesson does not mention a concept, do not assume it is known or generate a question about it.\n- **You must generate exactly 10 questions in total**:\n  - **7 multiple-choice questions** (type: \"multiple_choice\")\n  - **3 true/false questions** (type: \"true_false\")\n  - Do **not** include more or fewer than 10 questions.\n \n---\n \n**Quiz Structure:**\n \n- Total questions: **10**\n  - 7 multiple-choice questions:\n    - Each must have exactly 4 options\n    - Only one correct answer\n    - Label answers using \"answers\" as a list of strings\n    - \"correct\" must be the **index (0–3)** of the correct answer\n  - 3 true/false questions:\n    - \"answers\" should be: [\"True\", \"False\"]\n    - \"correct\" must be the **index** of the correct answer (0 for True, 1 for False)\n \n---\n \n**⚠️ JSON Format Example — for structure only, do not reuse the content:**\n \n[\n  {\n    \"question\": \"Question 1 goes here\",\n    \"answers\": [\n      \"Option A\",\n      \"Option B\",\n      \"Option C\",\n      \"Option D\"\n    ],\n    \"correct\": 1,\n    \"subContentId\": \"question-1\"\n  },\n  {\n    \"question\": \"Question 2 goes here\",\n    \"answers\": [\n      \"True\",\n      \"False\"\n    ],\n    \"correct\": 0,\n    \"subContentId\": \"question-2\"\n  }\n]\n \n**Context:**  \n\nAll questions must be generated **only from the provided lesson/module content**. Do not invent or assume anything beyond it. Here is the lesson/module content:\n\n{$prompt}";
+{
+    $deepseekPrompt = <<<PROMPT
+    **You are an expert quiz generator for students aged 8–18. Based on the following instructor-facing lesson, generate a quiz**
 
-        // Log the prompt information
-        Log::error('Deepseek Prompt:', [
+---
+
+**MUST FOLLOW:**
+1. **Language Rules:**
+   - Use words from this lesson only
+   - Include 2 "Which is NOT..." questions
+
+2. **Question Types:**
+   - 7 Multiple Choice:
+     * Exactly 4 answer options
+   - 3 True/False:
+     * Answers MUST be ["True", "False"] exactly
+     * Focus on clear facts from lesson
+
+3. **Content Safety:**
+   - Only use examples that appear in the lesson
+   - **DO NOT** mention concepts outside of the lesson
+
+4. **General Questions:**
+   - Focus on main topics from the lesson
+   - Ask broad, general questions about these topics
+   - Ensure questions are distinct and not rephrased versions of each other
+
+**Example Format (for structure only):**
+
+```json
+[
+  {
+    "question": "What is a program?",
+    "answers": [
+      "A fun drawing",
+      "A robot’s battery",
+      "An algorithm that a computer can follow",
+      "A puzzle with no rules"
+    ],
+    "correct": 2,
+    "subContentId": "question-1"
+  },
+  {
+    "question": "True or False: A sequence runs from top to bottom in programming.",
+    "answers": ["True", "False"],
+    "correct": 0,
+    "subContentId": "question-2"
+  }
+]
+PROMPT;
+
+    Log::error('Deepseek Prompt:', [
+        'prompt' => $deepseekPrompt,
+        'curriculum' => $curriculum,
+        'lessonTitle' => $lessonTitle
+    ]);
+
+    try {
+        $response = Http::timeout(60)->post('178.132.223.50:11434/api/generate', [
+            'model' => 'deepseek-r1:8b',
             'prompt' => $deepseekPrompt,
-            'curriculum' => $curriculum,
-            'lessonTitle' => $lessonTitle
+            'stream' => false
         ]);
-        
-        try {
-            $response = Http::timeout(60)->post('178.132.223.50:11434/api/generate', [
-                'model' => 'deepseek-r1:8b',
-                'prompt' => $deepseekPrompt,
-                'stream' => false
-            ]);
-            
-            if ($response->successful()) {
-                $responseData = $response->json();
-                if (isset($responseData['response'])) {
-                    $responseContent = $responseData['response'];
-                    
-                    // Extract content within triple backticks
-                    preg_match('/```json(.*?)```/s', $responseContent, $matches);
-                    Log::error('Deepseek Response:', ['response' => $responseContent, 'matches' => $matches]);
-                    $content = '';
-                    if (isset($matches[1])) {
-                        // Clean up the response by removing backslashes, newlines, and special characters
-                        $content = preg_replace('/\\n|\\r|\\t|\\\\/', '', $matches[1]);
-                    }
-                    Log::error('Deepseek Final:', ['content' => $content, 'jsonContent' => json_decode($content, true)]);
-                    return json_decode($content, true);
-                }
+
+        if ($response->successful()) {
+            $responseData = $response->json();
+
+            if (isset($responseData['response'])) {
+                $responseContent = $responseData['response'];
+
+                Log::error('Deepseek Raw Response:', ['response' => $responseContent]);
+
+                $json = $this->extractJsonFromResponse($responseContent);
+
+                Log::error('Deepseek Parsed JSON:', ['json' => $json]);
+
+                return $json;
             }
-            
-            Log::error('Deepseek API error:', [
-                'status' => $response->status(),
-                'response' => $response->body()
-            ]);
-            
-            return '';
-        } catch (\Exception $e) {
-            Log::error('Deepseek API exception:', [
-                'message' => $e->getMessage()
-            ]);
-            
-            return '';
+        }
+
+        Log::error('Deepseek API error:', [
+            'status' => $response->status(),
+            'response' => $response->body()
+        ]);
+
+        return '';
+    } catch (\Exception $e) {
+        Log::error('Deepseek API exception:', [
+            'message' => $e->getMessage()
+        ]);
+
+        return '';
+    }
+}
+
+
+private function extractJsonFromResponse(string $responseText)
+{
+    $cleaned = preg_replace('/```json|```|\n/', '', $responseText);
+    $cleaned = trim($cleaned);
+
+    $decoded = json_decode($cleaned, true);
+    if (json_last_error() === JSON_ERROR_NONE) {
+        return $decoded;
+    }
+
+    if (preg_match('/(\[\s*{.*?}\s*\])/s', $cleaned, $matches)) {
+        $fallbackDecoded = json_decode($matches[1], true);
+        if (json_last_error() === JSON_ERROR_NONE) {
+            return $fallbackDecoded;
         }
     }
+
+    throw new \Exception("No valid JSON array found in GPT response.");
+}
+
 
     /**
      * Create the H5P file from content.
