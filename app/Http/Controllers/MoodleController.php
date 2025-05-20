@@ -81,7 +81,6 @@ class MoodleController extends Controller
                 'response' => $uploadResponse ?? ""
             ]);
 
-            $prompt = "Generate quiz questions for Unit: {$request->unit}, Lesson: {$request->lesson}";
             $filename = "quiz_unit_{$request->unit}_lesson_{$request->lesson}_" . time();
             
             $curriculum = Curriculum::where('unit', $unit)
@@ -94,7 +93,6 @@ class MoodleController extends Controller
                 'curriculum_id' => $curriculum?->id,
                 'course_id' => $courseId,
                 'section_id' => $sectionId,
-                'prompt' => $prompt,
                 'filename' => $filename,
                 'gpt_response' => json_encode($gptContent),
                 'view_url' => $uploadResponse['viewdirecturl'] ?? "",
@@ -121,11 +119,12 @@ class MoodleController extends Controller
     public function findCurriculum(string $unit, string $lesson)
     {
         // Fetch curriculum data from the database
-        $curriculumData = Curriculum::where('unit', $unit)->where('lesson', $lesson)
+        $curriculumRecord = Curriculum::where('unit', $unit)->where('lesson', $lesson)
             ->select('title', 'content', 'lesson', 'unit', 'pdf_content')
             ->first();
 
-        $curriculumData = (!$curriculumData) ? "Lesson: " . $lesson . " Unit: " . $unit : $curriculumData->pdf_content;
+        $curriculumData = $curriculumRecord->content;
+        $mergedContent = ($curriculumData ?? '') . "\n\n" . ($curriculumRecord->pdf_content ?? '');
 
         // Generate content from deepseek-r1 model
         return $this->generateContentFromGPT($curriculumData);
@@ -264,54 +263,121 @@ class MoodleController extends Controller
     public function generateContentFromGPT(string $prompt, string $curriculum = '', string $lessonTitle = '')
 {
     $deepseekPrompt = <<<PROMPT
-    **You are an expert quiz generator for students aged 8–18. Based on the following instructor-facing lesson, generate a quiz**
+    ** ## Role:
+    You are an expert educational assistant trained to generate student-facing quizzes based on the lesson content provided.
+    Your task is to create a knowledge check for students that evaluates what they should have learned from the following lesson content.**
+    ---
+    
+    ## 🎯 Guidelines
+    Follow these rules:
+    1. **Audience**: Students aged 8-13 years old. Use simple, clear language.
+    2. Focus on the 3–5 most important ideas from the lesson. Base your questions on concepts like:
+     - [Concept 1: e.g., "What is X?"]
+     - [Concept 2: e.g., "Why does Y matter?"]
+     - [Concept 3: e.g., "How does Z work?"]
+     ❌ Do NOT follow or perform the instructions yourself.
 
----
+    3. Each question must:
+     - Test a unique idea (no repetition).
+     - Focus on applied understanding, not memorization or trivia.
+     - Use plausible distractors (no "All of the above" or "None of the above").
+     - Avoid overly complex wording.
+    
+    4. Language Rules
+    - Keep question language accessible to younger learners.
+    - Avoid using words like “students”, “learners”, or “instructors” in the questions.
+    - Include **2 “Which of the following is NOT…”** style questions.
+    
+    ### 3. Question Types
+    Generate EXACTLY **10 questions total**:
+    - ✅ **6-8 Multiple Choice Questions**
+      - Each must have **exactly 4 answer options**
+      - Choices should be similar in tone and format
+    - ✅ **2-4 True/False Questions**
+      - Answers must be `["True", "False"]` exactly
+      - Statements must be **clearly supported by the lesson**
+    
+    ### 4. Content Safety
+    - ❌ **Do NOT add external facts or examples**.
+    - ❌ **Do NOT include invented content**.
+    - ✅ All questions must be traceable to the lesson.
+    
+    ### Output Format (JSON):
+    - Return only the JSON array of questions
+    - Do NOT include explanations or markdown
+    - **Do NOT** include examples like the ones below — these are for format only
 
-**MUST FOLLOW:**
-1. **Language Rules:**
-   - Use words from this lesson only
-   - Include 2 "Which is NOT..." questions
+    # Example Format (for structure only):
 
-2. **Question Types:**
-   - 7 Multiple Choice:
-     * Exactly 4 answer options
-   - 3 True/False:
-     * Answers MUST be ["True", "False"] exactly
-     * Focus on clear facts from lesson
+    json
+    [
+    {
+        "question": "What is a program?",
+        "answers": [
+        "A fun drawing",
+        "A robot’s battery",
+        "An algorithm that a computer can follow",
+        "A puzzle with no rules"
+        ],
+        "correct": 2,
+        "subContentId": "question-1"
+    },
+    {
+        "question": "True or False: A sequence runs from top to bottom in programming.",
+        "answers": ["True", "False"],
+        "correct": 0,
+        "subContentId": "question-2"
+    }
+    ]
+    
+    Lesson Content:
+    """
+    {$prompt}
+    """
+    PROMPT;
 
-3. **Content Safety:**
-   - Only use examples that appear in the lesson
-   - **DO NOT** mention concepts outside of the lesson
+    // $deepseekPrompt = <<<PROMPT
+    // You are an expert educational assistant trained to generate student-facing quizzes based on the lesson content provided.
+    // Your task is to create a knowledge check for students that evaluates what they should have learned from the following lesson content.
 
-4. **General Questions:**
-   - Focus on main topics from the lesson
-   - Ask broad, general questions about these topics
-   - Ensure questions are distinct and not rephrased versions of each other
+    // Follow these rules:
+    // 1. **Audience**: Students aged 8-13 years old. Use simple, clear language.
+    // 2. Focus on the 3–5 most important ideas from the lesson. Base your questions on concepts like:
+    // - [Concept 1: e.g., "What is X?"]
+    // - [Concept 2: e.g., "Why does Y matter?"]
+    // - [Concept 3: e.g., "How does Z work?"]
 
-**Example Format (for structure only):**
+    // 3. Include:
+    // - **6–8 multiple-choice questions (MCQs)** with 4 answer choices each.
+    // - **2–4 True/False questions**.
 
-```json
-[
-  {
-    "question": "What is a program?",
-    "answers": [
-      "A fun drawing",
-      "A robot’s battery",
-      "An algorithm that a computer can follow",
-      "A puzzle with no rules"
-    ],
-    "correct": 2,
-    "subContentId": "question-1"
-  },
-  {
-    "question": "True or False: A sequence runs from top to bottom in programming.",
-    "answers": ["True", "False"],
-    "correct": 0,
-    "subContentId": "question-2"
-  }
-]
-PROMPT;
+    // 4. Each question must:
+    // - Test a unique idea (no repetition).
+    // - Focus on applied understanding, not memorization or trivia.
+    // - Use plausible distractors (no "All of the above" or "None of the above").
+    // - Avoid overly complex wording.
+
+    // 5. Output only the quiz in the following **JSON format**:
+    // ```json
+    // [
+    // {
+    //     "question": "Type your question here?",
+    //     "answers": ["Option A", "Option B", "Option C", "Option D"],
+    //     "correct": 2,
+    //     "subContentId": "question-1"
+    // },
+    // {
+    //     "question": "True or False: Your true/false question here.",
+    //     "answers": ["True", "False"],
+    //     "correct": 1,
+    //     "subContentId": "question-2"
+    // }
+    // ]
+    // Lesson Content:
+    // """
+    // {$prompt}
+    // """
+    // PROMPT;
 
     Log::error('Deepseek Prompt:', [
         'prompt' => $deepseekPrompt,
@@ -320,10 +386,11 @@ PROMPT;
     ]);
 
     try {
-        $response = Http::timeout(60)->post('178.132.223.50:11434/api/generate', [
+        $response = Http::timeout(60)->post('http://10.1.210.200:11434/api/generate', [
             'model' => 'deepseek-r1:8b',
             'prompt' => $deepseekPrompt,
-            'stream' => false
+            'stream' => false,
+            "options" => ["temperature" => 0.3, "num_ctx" => 16384]
         ]);
 
         if ($response->successful()) {
@@ -380,7 +447,7 @@ private function extractJsonFromResponse(string $responseText)
 
 
     /**
-     * Create the H5P file from content.
+     * Create the H5P file from content
      */
     public function createH5PFile(string $filename, string $content): string
     {
