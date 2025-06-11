@@ -14,3 +14,4 @@ Route::middleware(['cors.custom'])->group(function () {
 
 Route::post('/curriculum', [CurriculumController::class, 'store']);
 Route::get('/export-lessons', [CurriculumExportController::class, 'exportCsv']);
+Route::get('/curriculums/student-pov', [CurriculumController::class, 'studentPOV']);
