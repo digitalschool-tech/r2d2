@@ -46,7 +46,7 @@ class DeepAction
     {
 
         try {
-             $response = Http::post('138.201.173.118:8000/generate_quiz', [
+             $response = Http::post('http://138.201.173.118:8000/generate_quiz', [
             'unit' =>$unit,
             'lesson' => $lesson
         ]);
