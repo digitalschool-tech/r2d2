@@ -21,7 +21,7 @@ class CreateNewMissionAction
     {
         $gpt_data = DeepAction::handle('Return a JSON object with the following fields: name, title, content, summary and based on the content, create a mission that is relevant to the content: ' . $content);
         // Hardcoded endpoint URL and mission data.
-        $endpointUrl = 'https://dev-houses-bo.digitalschool.tech/api/create-new-mission'; // Replace with your actual endpoint URL.
+        $endpointUrl = 'https://dev-api.houses.digitalschool.tech/api/create-new-ai-mission'; // Replace with your actual endpoint URL.
         $data = (array) json_decode($gpt_data, true);
 
         if (!is_array($data)) {
@@ -43,7 +43,8 @@ class CreateNewMissionAction
         // $data['available_xp'] = 100;
         $data['player_id'] = $studentId;
         // $content = $data['content'];
-
+        $data['quiz_data'] = $quizData;
+        $data['name'] = $data['name'] ?? 'Default Mission Name'; // ensure name is set and not empty
         try {
             $response = Http::post($endpointUrl, $data);
 

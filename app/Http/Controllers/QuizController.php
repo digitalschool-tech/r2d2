@@ -15,7 +15,7 @@ class QuizController extends Controller
         try {
             $lesson = $request->input('lesson');
             $unit = $request->input('unit');
-            $studentId = $request->input('student_id', 1);
+            $studentId = $request->input('student_id', 32597);
 
             if (!$lesson || !$unit || !$studentId) {
                 return response()->json(['error' => 'Unit, lesson and student_id are required.'], 400);
@@ -45,7 +45,7 @@ class QuizController extends Controller
 
 
             // Call the FastAPI quizgen service
-            $quizResponse = Http::timeout(180)->post('http://138.201.173.118:8000/generate_quiz', [ //http://localhost:8080/generate_quiz
+            $quizResponse = Http::timeout(180)->post('http://138.201.173.118:8000/generate_quiz', [ // http://localhost:8080/generate_quiz
                 'unit' => $unit,
                 'lesson' => $lesson,
                 'content' => $content,

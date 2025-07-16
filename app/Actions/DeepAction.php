@@ -13,7 +13,7 @@ class DeepAction
     public static function handle(string $prompt)
     {
         try {
-            $response = HTTP::post('178.132.223.50:11434/api/generate', [ // 10.1.210.200:11434/api/generate
+            $response = HTTP::post('178.132.223.50:11434/api/generate', [ // 10.1.210.200:11434/api/generate 
                 'json' => [
                     'model' => 'deepseek-r1:8b',
                     'prompt' => $prompt
