@@ -10,17 +10,29 @@ class Quiz extends Model
 {
     use HasFactory;
 
-    protected $table = "quizzes";
-
     protected $fillable = [
-        'question',
-        'answers',
-        'correct',
-        'sub_content_id',
+        'external_student_id',
+        'curriculum_id',
+        'questions',
+        'student_answers',
+        'wrong_question_ids',
+        'ttc',
+        'completion_pct',
     ];
 
     protected $casts = [
-        'answers' => 'array',
+        'questions' => 'array',
+        'student_answers' => 'array',
+        'wrong_question_ids' => 'array',
     ];
 
+    public function student(): BelongsTo
+    {
+        return $this->belongsTo(StudentProfile::class, 'external_student_id', 'external_student_id');
+    }
+
+    public function curriculum(): BelongsTo
+    {
+        return $this->belongsTo(Curriculum::class);
+    }
 }

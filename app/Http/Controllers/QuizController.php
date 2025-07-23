@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Http;
 use App\Models\Curriculum;
 use App\Actions\CreateNewMissionAction;
+// use App\Models\StudentProfile;
+// use App\Models\Quiz;
 
 class QuizController extends Controller
 {
@@ -36,22 +38,48 @@ class QuizController extends Controller
             }
 
             $content = $curriculum->content;
+            $title = $curriculum->title;
+
+            $progressResponse = Http::get("https://dev-api.houses.digitalschool.tech/api/create-new-ai-mission/players/{$studentId}/latest-ai-mission-progress");
+            if (!$progressResponse->successful()) {
+                Log::warning('Failed to fetch player progress', [
+                    'status' => $progressResponse->status(),
+                    'body' => $progressResponse->body()
+                ]);
+            }
+
+            $ttc = null;
+            $completionPct = null;
+
+            if ($progressResponse->ok()) {
+                $progressData = $progressResponse->json();
+                $ttc = $progressData['time_to_complete'] ?? null;
+                $completionPct = $progressData['completion_percentage'] ?? null;
+
+                Log::info('Fetched mission progress', [
+                    'ttc' => $ttc,
+                    'completion_pct' => $completionPct
+                ]);
+            }
+
+
             Log::info('Curriculum content length: ' . strlen($content));
             Log::info('Calling quizgen with data:', [
                 'unit' => $unit,
                 'lesson' => $lesson,
                 'content' => $content,
+                'ttc' => $ttc,
+                'completion_pct' => $completionPct
             ]);
 
 
             // Call the FastAPI quizgen service
-            $quizResponse = Http::timeout(180)->post('http://138.201.173.118:8000/generate_quiz', [ // http://localhost:8080/generate_quiz
+            $quizResponse = Http::timeout(300)->post('http://138.201.173.118:8000/generate_quiz', [ //  http://localhost:8080/generate_quiz
                 'unit' => $unit,
                 'lesson' => $lesson,
                 'content' => $content,
-                // optional: you can also pass ttc and completion_pct if needed
-                // 'ttc' => 180,
-                // 'completion_pct' => 70,
+                'ttc' => 180,
+                'completion_pct' => 70,
             ]);
 
             if (!$quizResponse->successful()) {
@@ -69,8 +97,24 @@ class QuizController extends Controller
                 return response()->json(['error' => 'Quiz generation returned no valid questions.'], 500);
             }
 
-            
-            $mission = CreateNewMissionAction::handle($content, $studentId, $quizData);
+            // $student = StudentProfile::updateOrCreate(
+            //     ['external_student_id' => $studentId],
+            //     ['ttc' => $ttc, 'completion_pct' => $completionPct]
+            // );
+
+            // // Save quiz data
+            // Quiz::create([
+            //     'external_student_id' => $studentId,
+            //     'curriculum_id' => $curriculum->id,
+            //     'questions' => $quizData['questions'],
+            //     'student_answers' => [],
+            //     'wrong_question_ids' => [],
+            //     'ttc' => $ttc,
+            //     'completion_pct' => $completionPct,
+            // ]);
+
+
+            $mission = CreateNewMissionAction::handle($content, $studentId, $quizData, $title);
             return response()->json([
                 'unit' => $unit,
                 'lesson' => $lesson,

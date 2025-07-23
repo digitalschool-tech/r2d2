@@ -11,31 +11,66 @@ class DeepAction
 {
 
     public static function handle(string $prompt)
-    {
-        try {
-            $response = HTTP::post('178.132.223.50:11434/api/generate', [ // 10.1.210.200:11434/api/generate 
-                'json' => [
-                    'model' => 'deepseek-r1:8b',
-                    'prompt' => $prompt
-                ]
-            ]);
+{
+    try {
+            $response = HTTP::post('http://178.132.223.50:11434/api/generate', [ //  http://10.1.210.200:11434/api/generate
+            'model' => 'deepseek-r1:14b',
+            'prompt' => $prompt,
+            'stream' => false
+        ]);
 
-            $result = json_decode($response->getBody()->getContents(), true);
-            
-            // Log the API response
-            Log::info('Deepseek Response:', [
-                'response' => $result
-            ]);
-            
-            return $result['response'] ?? '[]';
-        } catch (\Exception $e) {
-            Log::error('Deepseek API error:', [
-                'error' => $e->getMessage(),
-                'prompt' => $prompt
-            ]);
-            throw $e;
-        }
+        $raw = $response->getBody()->getContents();
+        Log::info('Deepseek Raw Response:', [
+            'raw' => $raw
+        ]);
+        $json = json_decode($raw, true);
+        $text = $json['response'] ?? '';
+
+        // Remove <think>...</think> blocks
+        $cleaned = preg_replace('/<think>.*?<\/think>/is', '', $text);
+        $cleaned = trim($cleaned);
+
+        Log::info('Deepseek Cleaned Response:', [
+            'cleaned' => $cleaned
+        ]);
+
+        return $cleaned;
+    } catch (\Exception $e) {
+        Log::error('Deepseek API error:', [
+            'error' => $e->getMessage(),
+            'prompt' => $prompt
+        ]);
+        throw $e;
     }
+}
+    
+
+    // public static function handle(string $prompt)
+    // {
+    //     try {
+    //         $response = HTTP::post('http://10.1.210.200:11434/api/generate', [ //  http://178.132.223.50:11434/api/generate
+    //             'json' => [
+    //                 'model' => 'deepseek-r1:14b',
+    //                 'prompt' => $prompt
+    //             ]
+    //         ]);
+
+    //         $result = $response->getBody()->getContents();
+            
+    //         // Log the API response
+    //         Log::info('Deepseek Response:', [
+    //             'response' => $result
+    //         ]);
+            
+    //         return $result['response'] ?? '[]';
+    //     } catch (\Exception $e) {
+    //         Log::error('Deepseek API error:', [
+    //             'error' => $e->getMessage(),
+    //             'prompt' => $prompt
+    //         ]);
+    //         throw $e;
+    //     }
+    // }
     // public static function handle(string $unit, string $lesson)
     // {
 
