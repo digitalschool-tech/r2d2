@@ -13,17 +13,17 @@ class Quiz extends Model
     protected $fillable = [
         'external_student_id',
         'curriculum_id',
-        'questions',
-        'student_answers',
-        'wrong_question_ids',
+        'quiz_data',
+        'wrong_questions',
         'ttc',
         'completion_pct',
+        'performance',
+        'difficulty_level',
     ];
 
     protected $casts = [
-        'questions' => 'array',
-        'student_answers' => 'array',
-        'wrong_question_ids' => 'array',
+        'quiz_data' => 'array',
+        'wrong_questions' => 'array',
     ];
 
     public function student(): BelongsTo
@@ -34,5 +34,14 @@ class Quiz extends Model
     public function curriculum(): BelongsTo
     {
         return $this->belongsTo(Curriculum::class);
+    }
+
+     protected static function booted(): void
+    {
+        static::created(function (Quiz $quiz) {
+            if ($quiz->student) {
+                $quiz->student->updateFromQuiz();
+            }
+        });
     }
 }

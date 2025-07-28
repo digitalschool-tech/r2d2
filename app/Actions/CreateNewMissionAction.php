@@ -89,7 +89,7 @@ class CreateNewMissionAction
             'name' => $name,
             'title' => $name,
             'content' => [
-                'en' => 'content',
+                'en' => $content,
             ],
             'player_id' => $studentId,
             'quiz_data' => $quizData,

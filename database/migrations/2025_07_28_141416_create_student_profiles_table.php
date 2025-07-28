@@ -11,12 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('quizzes', function (Blueprint $table) {
+        Schema::create('student_profiles', function (Blueprint $table) {
             $table->id();
-            $table->string('question'); // Question text
-            $table->json('answers'); // Answers stored as JSON
-            $table->string('correct'); // Correct answer, can be a string or an ID
-            $table->string('sub_content_id'); // Foreign key to the sub_content
+            $table->string('external_student_id')->unique();
+            $table->unsignedInteger('ttc')->nullable();
+            $table->decimal('completion_pct', 5, 2)->nullable();
             $table->timestamps();
         });
     }
@@ -26,6 +25,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('quizzes');
+        Schema::dropIfExists('student_profiles');
     }
 };
