@@ -10,3 +10,4 @@ Route::post('/generate-quiz', [QuizController::class, 'generateQuizFromCurriculu
 Route::post('/curriculum', [CurriculumController::class, 'store']);
 Route::get('/export-lessons', [CurriculumExportController::class, 'exportCsv']);
 Route::get('/curriculums/student-pov', [CurriculumController::class, 'studentPOV']);
+Route::post('/quizzes/{quiz}/submit', [QuizController::class, 'submitQuiz']);
