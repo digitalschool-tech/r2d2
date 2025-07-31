@@ -81,11 +81,12 @@ class CreateNewMissionAction
      * @return array The decoded JSON response from the API.
      * @throws \Exception If the HTTP request fails or returns an error.
      */
-    public static function handle(string $content, int $studentId, array $quizData, string $name): array
+    public static function handle(int $id, string $content, int $studentId, array $quizData, string $name): array
     {
         $endpointUrl = 'https://dev-api.houses.digitalschool.tech/api/create-new-ai-mission';
 
         $data = [
+            'quiz_id' => $id,
             'name' => $name,
             'title' => $name,
             'content' => [

@@ -71,14 +71,14 @@ class QuizController extends Controller
             'performance' => null,
             'wrong_questions' => [],
         ]);
+        $quiz_id = $quiz->id;
+
+        $mission = CreateNewMissionAction::handle($quiz_id,'content', $data['student_id'], $quizData, $curriculum->title);
 
         return response()->json([
             'quiz_id' => $quiz->id,
-            'quiz_data' => $quizData['questions'],
-            'message' => 'Quiz generated successfully',
+            'mission' => $mission,
         ]);
-
-        $mission = CreateNewMissionAction::handle('content', $data['student_id'], $quizData, $curriculum->title);
      }
 
     public function submitQuiz(Request $request, Quiz $quiz)
