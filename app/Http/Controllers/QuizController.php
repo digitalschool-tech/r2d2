@@ -61,14 +61,18 @@ class QuizController extends Controller
             return response()->json(['error' => 'No questions returned from quiz generator.'], 422);
         }
 
+        $level = $quizData['level'];
+        $hardness_score = $quizData['hardness_score'];
+
+
          $quiz = Quiz::create([
             'external_student_id' => $data['student_id'],
             'curriculum_id' => $curriculum->id,
             'quiz_data' => $quizData['questions'],
-            'difficulty_level' => $quizData['difficulty_level'] ?? 'medium',
+            'difficulty_level' => $level,
             'ttc' => null,
             'completion_pct' => null,
-            'performance' => null,
+            'performance' => $hardness_score,
             'wrong_questions' => [],
         ]);
         $quiz_id = $quiz->id;

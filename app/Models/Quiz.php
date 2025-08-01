@@ -17,6 +17,7 @@ class Quiz extends Model
         'wrong_questions',
         'ttc',
         'completion_pct',
+        // TODO: Change 'performance' to 'hardness_score' or similar if needed
         'performance',
         'difficulty_level',
     ];
