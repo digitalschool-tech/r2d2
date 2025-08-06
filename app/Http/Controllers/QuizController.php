@@ -21,6 +21,10 @@ class QuizController extends Controller
             'lesson' => 'required|integer',
         ]);
 
+        if(strtolower($data['unit']) === 'python basic') {
+            $data['unit'] = 'python for kids';
+        }
+
         $curriculum = Curriculum::where('unit', $data['unit'])
             ->where('lesson', $data['lesson'])
             ->select('id', 'title', 'content', 'pdf_content', 'lesson', 'unit')
