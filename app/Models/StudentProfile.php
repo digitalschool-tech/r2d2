@@ -36,4 +36,25 @@ class StudentProfile extends Model
             'completion_pct' => $averages->avg_completion_pct !== null ? round($averages->avg_completion_pct) : null,
         ]);
     }
+    public function computeSkillProfile(): ?array
+    {
+        $quizzes = $this->quizzes()
+            ->whereNotNull('performance')
+            ->get();
+
+        if ($quizzes->isEmpty()) {
+            return null;
+        }
+
+        return [
+            'speed' => max(0, min(100, 120 - $quizzes->avg('ttc'))), // Normalize inverse
+            'accuracy' => round($quizzes->avg('completion_pct'), 2),
+            'performance' => round($quizzes->avg('performance'), 2),
+            'resilience' => round(100 - (
+                $quizzes->pluck('wrong_questions')->flatten()->count()
+                / max(1, $quizzes->count())
+            ) * 10, 2),
+        ];
+    }
 }
+

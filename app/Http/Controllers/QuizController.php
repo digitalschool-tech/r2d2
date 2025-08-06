@@ -105,8 +105,82 @@ class QuizController extends Controller
         return response()->json(['message' => 'Quiz submitted successfully.']);
     }
 
+    public function getStudentRadarProfile($studentId)
+    {
+        $student = StudentProfile::where('external_student_id', $studentId)->firstOrFail();
+        $quizzes = Quiz::where('external_student_id', $studentId)
+            ->whereNotNull('performance')
+            ->get();
 
+        if ($quizzes->isEmpty()) {
+            return response()->json(['message' => 'No quiz data found.'], 404);
+        }
 
-        
+        $data = [
+            'speed' => max(0, min(100, 120 - $quizzes->avg('ttc'))),
+            'accuracy' => round($quizzes->avg('completion_pct'), 2),
+            'performance' => round($quizzes->avg('performance'), 2),
+            'resilience' => round(100 - (
+                $quizzes->pluck('wrong_questions')->flatten()->count()
+                / max(1, $quizzes->count())
+            ) * 10, 2),
+        ];
+
+        return response()->json($data);
+    }
+
+    // Feature 2: Performance Over Time
+    public function getPerformanceOverTime($studentId)
+    {
+        $quizzes = Quiz::where('external_student_id', $studentId)
+            ->whereNotNull('performance')
+            ->orderBy('created_at')
+            ->get(['performance', 'created_at']);
+
+        return response()->json($quizzes);
+    }
+
+    // Feature 3: Wrong Question Summary
+    public function getWrongConceptSummary($quizId)
+    {
+        $quiz = Quiz::findOrFail($quizId);
+
+        $conceptCounts = [];
+
+        foreach ($quiz->wrong_questions as $question) {
+            $concept = $question['concept'] ?? 'unknown';
+            $conceptCounts[$concept] = ($conceptCounts[$concept] ?? 0) + 1;
+        }
+
+        arsort($conceptCounts);
+        return response()->json($conceptCounts);
+    }
+
+    public function getLessonPerformance($unit, $lesson)
+    {
+        $curriculum = Curriculum::where('unit', $unit)
+            ->where('lesson', $lesson)
+            ->firstOrFail();
     
+        $quizzes = Quiz::where('curriculum_id', $curriculum->id)
+            ->whereNotNull('completion_pct')
+            ->get();
+    
+        if ($quizzes->isEmpty()) {
+            return response()->json(['message' => 'No quiz data available for this lesson.'], 404);
+        }
+    
+        $avgCompletion = round($quizzes->avg('completion_pct'), 2);
+        $avgTtc = round($quizzes->avg('ttc'), 2);
+        $avgPerformance = round($quizzes->avg('performance'), 2);
+    
+        return response()->json([
+            'unit' => $unit,
+            'lesson' => $lesson,
+            'average_completion_pct' => $avgCompletion,
+            'average_ttc' => $avgTtc,
+            'average_performance' => $avgPerformance,
+            'quiz_count' => $quizzes->count(),
+        ]);
+    }    
 }
