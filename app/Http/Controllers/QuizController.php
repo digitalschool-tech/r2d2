@@ -38,17 +38,25 @@ class QuizController extends Controller
             'external_student_id' => $data['student_id'],
         ]);
 
-  
-        $avgTtc = $student->ttc ?? 120; // Default to 120 seconds if not set
-        $avgCompletion = $student->completion_pct ?? 100; // Default to 100% if not set
-
-        $quizResponse = Http::timeout(300)->post('http://138.201.173.118:8000/generate_quiz', [ //http://138.201.173.118:8000/generate_quiz
+        // TODO: Handle cases where student profile does not have ttc or completion_pct set
+        $avgTtc = $student->ttc ?? 120; // change default 
+        $avgCompletion = $student->completion_pct ?? 50; // change default
+        try {
+             $quizResponse = Http::timeout(300)->post('http://138.201.173.118:8000/generate_quiz', [ //http://138.201.173.118:8000/generate_quiz
             'unit' => $data['unit'],
             'lesson' => $data['lesson'],
             'content' => $curriculum->content,
             'ttc' => $avgTtc,
             'completion_pct' => $avgCompletion,
         ]);
+        } catch(\Exception $e) {
+            Log::error('Quiz Generator API request failed', [
+                'message' => $e->getMessage(),
+                'unit' => $data['unit'],
+                'lesson' => $data['lesson'],
+            ]);
+            return response()->json(['error' => 'Quiz generation service is currently unavailable.'], 503);
+        }
 
         if (!$quizResponse->successful()) {
             Log::error('Quiz Generator API failed', [
@@ -68,8 +76,8 @@ class QuizController extends Controller
         $level = $quizData['level'];
         $hardness_score = $quizData['hardness_score'];
 
-
-         $quiz = Quiz::create([
+        try {
+            $quiz = Quiz::create([
             'external_student_id' => $data['student_id'],
             'curriculum_id' => $curriculum->id,
             'quiz_data' => $quizData['questions'],
@@ -79,10 +87,21 @@ class QuizController extends Controller
             'performance' => $hardness_score,
             'wrong_questions' => [],
         ]);
-        $quiz_id = $quiz->id;
+        $mission = CreateNewMissionAction::handle(
+            $quiz->id, 'content', $data['student_id'], $quizData, $curriculum->title
+        );
+        }
 
-        $mission = CreateNewMissionAction::handle($quiz_id,'content', $data['student_id'], $quizData, $curriculum->title);
-
+        catch (\Exception $e) {
+            Log::error('Failed to create quiz or mission', [
+                'message' => $e->getMessage(),
+                'student_id' => $data['student_id'],
+                'unit' => $data['unit'],
+                'lesson' => $data['lesson'],
+            ]);
+            return response()->json(['error' => 'Failed to create quiz or mission.'], 500);
+        }
+         
         return response()->json([
             'quiz_id' => $quiz->id,
             'mission' => $mission,
@@ -112,9 +131,6 @@ class QuizController extends Controller
 
         return response()->json(['message' => 'Quiz submitted successfully.']);
     }
-
-
-
-        
+      
     
 }
