@@ -34,3 +34,5 @@ Route::get('/audio/download/{audioRequest}', function (AudioRequest $audioReques
 Route::post('/generate-audio', [AudioController::class, 'generate']);
 Route::get('/workflow/{any}', [WorkflowController::class, 'handle'])
     ->where('any', '.*'); // Matches any route after /workflow/
+
+Route::get('/performance-timeline', [App\Http\Controllers\PerformanceTimelineController::class, 'index'])->name('performance-timeline');
